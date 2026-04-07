@@ -37,6 +37,14 @@
             border-color: #3b82f6;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
+        /* Hiệu ứng trượt mở cho các mục */
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans text-slate-800 p-2 md:p-4 lg:p-8">
@@ -52,14 +60,22 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <!-- Cột Trái (Form Nhập Liệu) - Được ưu tiên rộng hơn -->
+            <!-- Cột Trái (Form Nhập Liệu) -->
             <div class="lg:col-span-7 flex flex-col gap-6">
                 
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 h-fit flex flex-col gap-4">
-                    <div class="flex items-center justify-between border-b pb-2">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 h-fit flex flex-col gap-4 relative">
+                    <!-- Tiêu đề và Nút Tải lên Ma trận chung -->
+                    <div class="flex items-center justify-between border-b pb-3">
                         <h2 class="text-lg font-semibold flex items-center text-slate-800">
                             <i class="fas fa-edit mr-2 text-blue-500"></i> Thông tin đầu vào
                         </h2>
+                        <!-- Nút Tải lên (Luôn hiện để tiện dụng) -->
+                        <div>
+                            <input type="file" id="importMatrixFile" accept=".xls,.json" class="hidden" onchange="handleImportMatrix(event)">
+                            <button onclick="document.getElementById('importMatrixFile').click()" class="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors font-semibold flex items-center border border-blue-200" title="Tải lên Ma trận từ file Excel đã xuất">
+                                <i class="fas fa-upload mr-1.5"></i> Tải Ma Trận Khôi Phục
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Chuyển đổi chế độ -->
@@ -72,7 +88,7 @@
                         </button>
                     </div>
 
-                    <!-- Chọn Lớp -->
+                    <!-- Bước 1: Chọn Lớp -->
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-2">
                             1. Chọn Lớp <span class="text-red-500">*</span>
@@ -93,8 +109,8 @@
                         </div>
                     </div>
 
-                    <!-- Chọn Bài (Chi tiết theo Chương) -->
-                    <div>
+                    <!-- Bước 2: Chọn Bài (Ẩn cho đến khi chọn Lớp) -->
+                    <div id="step2-container" class="hidden fade-in">
                         <label class="block text-sm font-medium text-slate-700 mb-2">
                             2. Chọn nội dung (Tích chọn bài học) <span class="text-red-500">*</span>
                         </label>
@@ -103,127 +119,130 @@
                         </div>
                     </div>
 
-                    <!-- Khu vực Chung: Văn bản bài học -->
-                    <div id="common-text-area" class="hidden">
-                        <label for="selectedTopicsText" class="block text-sm font-medium text-slate-700 mb-2">
-                            3. Văn bản các bài đã chọn (Có thể chỉnh sửa)
-                        </label>
-                        <textarea id="selectedTopicsText" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-sm font-mono"></textarea>
-                    </div>
+                    <!-- VÙNG ẨN THÔNG MINH (Chỉ hiện khi đã chọn ít nhất 1 bài học) -->
+                    <div id="main-action-container" class="hidden flex-col gap-6 fade-in pt-2 border-t border-slate-100">
+                        
+                        <!-- Bước 3: Văn bản bài học -->
+                        <div id="common-text-area">
+                            <label for="selectedTopicsText" class="block text-sm font-medium text-slate-700 mb-2">
+                                3. Văn bản các bài đã chọn (Có thể chỉnh sửa)
+                            </label>
+                            <textarea id="selectedTopicsText" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-sm font-mono"></textarea>
+                        </div>
 
-                    <!-- ================= CHẾ ĐỘ: PHỤ ĐẠO ================= -->
-                    <div id="practice-settings" class="flex flex-col gap-4">
-                        <div class="grid grid-cols-2 gap-4">
+                        <!-- Bước 4: CHẾ ĐỘ PHỤ ĐẠO -->
+                        <div id="practice-settings" class="flex flex-col gap-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="level" class="block text-sm font-medium text-slate-700 mb-2">4. Đối tượng học sinh</label>
+                                    <select id="level" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-sm">
+                                        <option value="Trung bình">Trung bình</option>
+                                        <option value="Trung bình khá">Trung bình khá</option>
+                                        <option value="Khá giỏi">Khá giỏi</option>
+                                        <option value="Giỏi">Giỏi</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="numQuestions" class="block text-sm font-medium text-slate-700 mb-2">5. Số câu hỏi</label>
+                                    <input type="number" id="numQuestions" value="10" min="1" max="100" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-sm">
+                                </div>
+                            </div>
                             <div>
-                                <label for="level" class="block text-sm font-medium text-slate-700 mb-2">4. Đối tượng học sinh</label>
-                                <select id="level" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-sm">
-                                    <option value="Trung bình">Trung bình</option>
-                                    <option value="Trung bình khá">Trung bình khá</option>
-                                    <option value="Khá giỏi">Khá giỏi</option>
-                                    <option value="Giỏi">Giỏi</option>
+                                <label for="notes" class="block text-sm font-medium text-slate-700 mb-2">6. Ghi chú thêm cho AI</label>
+                                <textarea id="notes" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors bg-white text-sm" placeholder="VD: Ưu tiên các bài toán thực tế..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Bước 4: CHẾ ĐỘ MA TRẬN -->
+                        <div id="matrix-settings" class="hidden flex flex-col gap-2">
+                            <div class="flex justify-between items-center mb-1 mt-1">
+                                <label class="block text-sm font-medium text-slate-700">4. Thiết lập Ma trận Đề thi</label>
+                                <div class="space-x-1 flex items-center">
+                                    <button onclick="exportMatrixExcel()" class="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200 transition-colors" title="Xuất Excel (.xls)"><i class="fas fa-file-excel mr-1"></i> Xuất Excel</button>
+                                    <button onclick="exportMatrixText()" class="text-[11px] bg-slate-200 text-slate-700 px-2 py-1 rounded hover:bg-slate-300 transition-colors" title="Tải file Text (.txt)"><i class="fas fa-file-alt mr-1"></i> Xuất Text</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Bảng ma trận: Gỡ bỏ max-h để hiển thị toàn bộ, cuộn ngang nếu màn hình nhỏ -->
+                            <div class="border border-slate-300 rounded-lg shadow-sm bg-white overflow-hidden overflow-x-auto">
+                                <table class="w-full text-[11px] text-left border-collapse min-w-[600px]">
+                                    <thead class="bg-slate-100 sticky top-0 shadow-sm z-10">
+                                        <tr>
+                                            <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300 w-[120px]">Bài học / Chuyên đề</th>
+                                            <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300 text-center" title="Phần 1: Trắc nghiệm 4 lựa chọn">TN</th>
+                                            <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300 text-center" title="Phần 2: Trắc nghiệm Đúng/Sai">Đ/S</th>
+                                            <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300 text-center" title="Phần 3: Trả lời ngắn">Ngắn</th>
+                                            <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300">Mức độ</th>
+                                            <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300">Loại bài</th>
+                                            <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300 text-center">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="matrixBody" class="divide-y divide-slate-100">
+                                        <!-- Dữ liệu render động -->
+                                    </tbody>
+                                    <tfoot class="bg-slate-50 sticky bottom-0 border-t-2 border-slate-300 font-semibold" id="matrixFooter" style="display: none;">
+                                        <tr>
+                                            <td class="px-2 py-2 text-right">Tổng cộng:</td>
+                                            <td class="px-1 py-2 text-center text-blue-700" id="totalTN">0</td>
+                                            <td class="px-1 py-2 text-center text-blue-700" id="totalTF">0</td>
+                                            <td class="px-1 py-2 text-center text-blue-700" id="totalSA">0</td>
+                                            <td colspan="3"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-1 italic">* Dùng dấu [+] để thêm dòng cho cùng 1 bài học (VD: tách riêng câu Nhận biết và Vận dụng).</p>
+                        </div>
+
+                        <!-- CHỌN VAI TRÒ AI (Gợi ý tuỳ chọn) -->
+                        <div class="border border-slate-200 rounded-lg bg-slate-50 overflow-hidden">
+                            <button type="button" onclick="document.getElementById('roleSelection').classList.toggle('hidden'); this.querySelector('i.fa-chevron-down').classList.toggle('rotate-180')" class="w-full px-4 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 flex justify-between items-center transition-colors">
+                                <span><i class="fas fa-user-graduate mr-2 text-indigo-500"></i> Chọn Vai trò sư phạm cho AI (Gợi ý tuỳ chọn)</span>
+                                <i class="fas fa-chevron-down transition-transform duration-300 text-slate-400"></i>
+                            </button>
+                            <div id="roleSelection" class="hidden p-3 border-t border-slate-200 bg-white">
+                                <select id="aiRole" class="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-slate-50 text-sm font-medium text-slate-800">
+                                    <option value="default">Mặc định: Chuyên gia Toán học giàu kinh nghiệm</option>
+                                    <option value="feynman">1. Phương pháp Feynman: Giải thích siêu đơn giản, loại bỏ thuật ngữ phức tạp</option>
+                                    <option value="socratic">2. Phương pháp Socratic: Đặt câu hỏi gợi mở, dẫn dắt học sinh tự tư duy</option>
+                                    <option value="bloom">3. Thang đo Bloom: Phân loại rạch ròi từ nhận biết đến sáng tạo</option>
+                                    <option value="coach">4. Huấn luyện viên cá nhân: Khích lệ, động viên và phân tích kỹ lỗi sai</option>
+                                    <option value="pbl">5. Giáo sư Problem-Based: Bắt đầu từ vấn đề thực tế để giải quyết</option>
+                                    <option value="micro">6. Chuyên gia Microlearning: Chia nhỏ khối kiến thức cực ngắn, dễ tiêu hóa</option>
+                                    <option value="spaced">7. Chuyên gia Spaced Repetition: Câu hỏi xoáy sâu bản chất để nhớ lâu</option>
+                                    <option value="practical">8. Giáo viên Thực tiễn: Luôn liên kết công thức với ứng dụng đời sống</option>
+                                    <option value="trap">9. Chuyên gia "Phá bẫy": Soạn đề lắt léo, chỉ điểm các lỗi sai phổ biến</option>
+                                    <option value="multiple">10. Cố vấn Đa trí tuệ: Trình bày nhiều cách giải (Đại số, Hình học...) cho 1 bài</option>
                                 </select>
-                            </div>
-                            <div>
-                                <label for="numQuestions" class="block text-sm font-medium text-slate-700 mb-2">5. Số câu hỏi</label>
-                                <input type="number" id="numQuestions" value="10" min="1" max="100" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-sm">
+                                <p class="text-[11px] text-slate-500 mt-2 italic">* Chọn một phương pháp giáo dục để AI thay đổi phong cách ra đề và diễn giải kiến thức.</p>
                             </div>
                         </div>
-                        <div>
-                            <label for="notes" class="block text-sm font-medium text-slate-700 mb-2">6. Ghi chú thêm cho AI</label>
-                            <textarea id="notes" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors bg-white text-sm" placeholder="VD: Ưu tiên các bài toán thực tế..."></textarea>
-                        </div>
-                    </div>
 
-                    <!-- ================= CHẾ ĐỘ: MA TRẬN ================= -->
-                    <div id="matrix-settings" class="hidden flex flex-col gap-2">
-                        <div class="flex justify-between items-center mb-1 mt-2">
-                            <label class="block text-sm font-medium text-slate-700">4. Thiết lập Ma trận Đề thi</label>
-                            <div class="space-x-1 flex items-center">
-                                <input type="file" id="importMatrixFile" accept=".xls,.json" class="hidden" onchange="handleImportMatrix(event)">
-                                <button onclick="document.getElementById('importMatrixFile').click()" class="text-[11px] bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors" title="Tải lên Ma trận (từ file Excel đã xuất)"><i class="fas fa-upload mr-1"></i> Tải lên</button>
-                                <button onclick="exportMatrixExcel()" class="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200 transition-colors" title="Xuất Excel (.xls)"><i class="fas fa-file-excel mr-1"></i> Xuất Excel</button>
-                                <button onclick="exportMatrixText()" class="text-[11px] bg-slate-200 text-slate-700 px-2 py-1 rounded hover:bg-slate-300 transition-colors" title="Tải file Text (.txt)"><i class="fas fa-file-alt mr-1"></i> Xuất Text</button>
+                        <!-- KHU VỰC NÚT SINH PROMPT -->
+                        <div id="action-buttons" class="space-y-2">
+                            <!-- Nút Phụ đạo -->
+                            <button onclick="generatePrompt('practice')" id="btn-practice-gen" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg shadow-sm flex items-center justify-center transition-colors">
+                                <i class="fas fa-magic mr-2"></i> Sinh Prompt Phụ Đạo
+                            </button>
+                            
+                            <!-- Nhóm Nút Ma trận -->
+                            <div id="matrix-action-buttons" class="hidden grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                <button onclick="generatePrompt('matrix_table')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 px-2 text-[13px] rounded-lg shadow-sm flex items-center justify-center transition-colors">
+                                    <i class="fas fa-table mr-2"></i> Prompt Bảng 9 Cột
+                                </button>
+                                <button onclick="generatePrompt('matrix_app')" class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-2 text-[13px] rounded-lg shadow-sm flex items-center justify-center transition-colors">
+                                    <i class="fas fa-desktop mr-2"></i> Prompt App Trình Chiếu
+                                </button>
+                                <button onclick="generatePrompt('matrix_anki')" class="bg-amber-500 hover:bg-amber-600 text-white font-medium py-3 px-2 text-[13px] rounded-lg shadow-sm flex items-center justify-center transition-colors">
+                                    <i class="fas fa-bolt mr-2"></i> Prompt Anki Flash
+                                </button>
+                                <button onclick="generatePrompt('matrix_anki_mc')" class="bg-teal-500 hover:bg-teal-600 text-white font-medium py-3 px-2 text-[13px] rounded-lg shadow-sm flex items-center justify-center transition-colors">
+                                    <i class="fas fa-list-ul mr-2"></i> Prompt Anki MC
+                                </button>
                             </div>
                         </div>
-                        
-                        <div class="border border-slate-300 rounded-lg max-h-72 shadow-inner bg-white overflow-hidden overflow-y-auto">
-                            <!-- Bỏ min-w-[600px] để bảng co giãn vừa khít -->
-                            <table class="w-full text-[11px] text-left border-collapse">
-                                <thead class="bg-slate-100 sticky top-0 shadow-sm z-10">
-                                    <tr>
-                                        <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300 w-[120px]">Bài học / Chuyên đề</th>
-                                        <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300 text-center" title="Phần 1: Trắc nghiệm 4 lựa chọn">TN</th>
-                                        <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300 text-center" title="Phần 2: Trắc nghiệm Đúng/Sai">Đ/S</th>
-                                        <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300 text-center" title="Phần 3: Trả lời ngắn">Ngắn</th>
-                                        <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300">Mức độ</th>
-                                        <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300">Loại bài</th>
-                                        <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300 text-center">Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="matrixBody" class="divide-y divide-slate-100">
-                                    <tr>
-                                        <td colspan="7" class="text-center text-slate-400 p-4 italic">Vui lòng chọn bài học ở mục 2 để tạo ma trận.</td>
-                                    </tr>
-                                </tbody>
-                                <tfoot class="bg-slate-50 sticky bottom-0 border-t-2 border-slate-300 font-semibold" id="matrixFooter" style="display: none;">
-                                    <tr>
-                                        <td class="px-2 py-2 text-right">Tổng cộng:</td>
-                                        <td class="px-1 py-2 text-center text-blue-700" id="totalTN">0</td>
-                                        <td class="px-1 py-2 text-center text-blue-700" id="totalTF">0</td>
-                                        <td class="px-1 py-2 text-center text-blue-700" id="totalSA">0</td>
-                                        <td colspan="3"></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                        <p class="text-[10px] text-slate-500 mt-1 italic">* Dùng dấu [+] để thêm dòng cho cùng 1 bài học (VD: tách riêng câu Nhận biết và Vận dụng).</p>
-                    </div>
 
-                    <!-- ================= CHỌN VAI TRÒ AI (ẨN) ================= -->
-                    <div class="border border-slate-200 rounded-lg bg-slate-50 overflow-hidden mt-2">
-                        <button type="button" onclick="document.getElementById('roleSelection').classList.toggle('hidden'); this.querySelector('i.fa-chevron-down').classList.toggle('rotate-180')" class="w-full px-4 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 flex justify-between items-center transition-colors">
-                            <span><i class="fas fa-user-graduate mr-2 text-indigo-500"></i> Chọn Vai trò sư phạm cho AI (Gợi ý tuỳ chọn)</span>
-                            <i class="fas fa-chevron-down transition-transform duration-300 text-slate-400"></i>
-                        </button>
-                        <div id="roleSelection" class="hidden p-3 border-t border-slate-200 bg-white">
-                            <select id="aiRole" class="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-slate-50 text-sm font-medium text-slate-800">
-                                <option value="default">Mặc định: Chuyên gia Toán học giàu kinh nghiệm</option>
-                                <option value="feynman">1. Phương pháp Feynman: Giải thích siêu đơn giản, loại bỏ thuật ngữ phức tạp</option>
-                                <option value="socratic">2. Phương pháp Socratic: Đặt câu hỏi gợi mở, dẫn dắt học sinh tự tư duy</option>
-                                <option value="bloom">3. Thang đo Bloom: Phân loại rạch ròi từ nhận biết đến sáng tạo</option>
-                                <option value="coach">4. Huấn luyện viên cá nhân: Khích lệ, động viên và phân tích kỹ lỗi sai</option>
-                                <option value="pbl">5. Giáo sư Problem-Based: Bắt đầu từ vấn đề thực tế để giải quyết</option>
-                                <option value="micro">6. Chuyên gia Microlearning: Chia nhỏ khối kiến thức cực ngắn, dễ tiêu hóa</option>
-                                <option value="spaced">7. Chuyên gia Spaced Repetition: Câu hỏi xoáy sâu bản chất để nhớ lâu</option>
-                                <option value="practical">8. Giáo viên Thực tiễn: Luôn liên kết công thức với ứng dụng đời sống</option>
-                                <option value="trap">9. Chuyên gia "Phá bẫy": Soạn đề lắt léo, chỉ điểm các lỗi sai phổ biến</option>
-                                <option value="multiple">10. Cố vấn Đa trí tuệ: Trình bày nhiều cách giải (Đại số, Hình học...) cho 1 bài</option>
-                            </select>
-                            <p class="text-[11px] text-slate-500 mt-2 italic">* Chọn một phương pháp giáo dục để AI thay đổi phong cách ra đề và diễn giải kiến thức.</p>
-                        </div>
-                    </div>
-
-                    <!-- Khu vực Nút Bấm -->
-                    <div id="action-buttons" class="mt-2 space-y-2">
-                        <button onclick="generatePrompt('practice')" id="btn-practice-gen" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg shadow-sm flex items-center justify-center transition-colors">
-                            <i class="fas fa-magic mr-2"></i> Sinh Prompt Phụ Đạo
-                        </button>
-                        
-                        <div id="matrix-action-buttons" class="hidden grid grid-cols-2 lg:grid-cols-4 gap-2">
-                            <button onclick="generatePrompt('matrix_table')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 px-2 text-[13px] rounded-lg shadow-sm flex items-center justify-center transition-colors">
-                                <i class="fas fa-table mr-2"></i> Prompt Bảng 9 Cột
-                            </button>
-                            <button onclick="generatePrompt('matrix_app')" class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-2 text-[13px] rounded-lg shadow-sm flex items-center justify-center transition-colors">
-                                <i class="fas fa-desktop mr-2"></i> Prompt App Trình Chiếu
-                            </button>
-                            <button onclick="generatePrompt('matrix_anki')" class="bg-amber-500 hover:bg-amber-600 text-white font-medium py-3 px-2 text-[13px] rounded-lg shadow-sm flex items-center justify-center transition-colors">
-                                <i class="fas fa-bolt mr-2"></i> Prompt Anki Flash
-                            </button>
-                            <button onclick="generatePrompt('matrix_anki_mc')" class="bg-teal-500 hover:bg-teal-600 text-white font-medium py-3 px-2 text-[13px] rounded-lg shadow-sm flex items-center justify-center transition-colors">
-                                <i class="fas fa-list-ul mr-2"></i> Prompt Anki MC
-                            </button>
-                        </div>
-                    </div>
+                    </div> <!-- End Main Action Container -->
                 </div>
 
                 <!-- Block: Prompt Đã Lưu -->
@@ -237,7 +256,7 @@
                 </div>
             </div>
 
-            <!-- Cột Phải (Kết quả) - Được thu gọn lại một chút -->
+            <!-- Cột Phải (Kết quả) -->
             <div class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col h-[850px]">
                 <div class="flex items-center justify-between mb-4 border-b pb-2">
                     <h2 class="text-lg font-semibold flex items-center text-slate-800">
@@ -339,6 +358,9 @@
             const container = document.getElementById('topicContainer');
             if (!selectedClass) return;
 
+            // Hiển thị khung Chọn Bài khi đã chọn Lớp
+            document.getElementById('step2-container').classList.remove('hidden');
+
             const chapters = topicData[selectedClass];
             container.innerHTML = ''; 
 
@@ -375,6 +397,9 @@
                 chapterDiv.appendChild(lessonList);
                 container.appendChild(chapterDiv);
             });
+
+            // Gọi hàm cập nhật để ẩn các chức năng bên dưới khi vừa đổi Lớp (chưa tích chọn bài nào)
+            handleSelectionChange();
         }
 
         function handleSelectionChange() {
@@ -398,8 +423,16 @@
                 lessons.forEach(l => { topicListStr += `\n    - ${l}`; });
             }
             document.getElementById('selectedTopicsText').value = topicListStr;
-            if(topicListStr !== "") document.getElementById('common-text-area').classList.remove('hidden');
-            else document.getElementById('common-text-area').classList.add('hidden');
+            
+            // XỬ LÝ ẨN/HIỆN THÔNG MINH
+            const actionContainer = document.getElementById('main-action-container');
+            if(topicListStr !== "") {
+                actionContainer.classList.remove('hidden');
+                actionContainer.classList.add('flex');
+            } else {
+                actionContainer.classList.add('hidden');
+                actionContainer.classList.remove('flex');
+            }
         }
 
         // --- HỆ THỐNG MA TRẬN ĐỀ THI (HỖ TRỢ NHIỀU DÒNG) ---
@@ -581,6 +614,7 @@
                             const radio = document.querySelector(`input[name="classSelect"][value="${detectedClass}"]`);
                             if (radio && !radio.checked) {
                                 radio.checked = true;
+                                document.getElementById('step2-container').classList.remove('hidden');
                                 renderTopics(); // render DOM checklist first
                             }
                         }
@@ -602,6 +636,7 @@
 
                         updateSelectedTopicsText();
                         renderMatrixTable();
+                        switchMode('matrix'); // Tự động chuyển sang Tab Ma trận sau khi tải
                         showToast('Đã tải lên và khôi phục ma trận thành công!', true);
                     } else {
                         showToast('Không tìm thấy dữ liệu ma trận hợp lệ trong file này.');
@@ -988,7 +1023,9 @@ Phần III. Trả lời ngắn (${totalSA} câu)
 - Sau phần nội dung câu hỏi, cung cấp ngay đáp án ở dòng cuối cùng theo đúng định dạng: "Đáp án: [Giá trị]".
 
 Lời giải:
-- Cuối đề thi, tạo một mục "Lời giải:" và viết hướng dẫn giải chi tiết nhưng súc tích cho toàn bộ các câu hỏi ở cả 3 phần trên.
+- Cuối đề thi, tạo một mục "Lời giải:" cho toàn bộ các câu hỏi ở cả 3 phần.
+- Lời giải phải cực kỳ NGẮN GỌN, đi thẳng vào bản chất. 
+- YÊU CẦU BẮT BUỘC: Phải CÓ XUỐNG DÒNG RÕ RÀNG (dùng các gạch đầu dòng) giữa các bước tính toán hoặc giữa các ý a, b, c, d để tối ưu hiển thị trên màn hình máy chiếu.
 
 MẪU TRÌNH BÀY BẮT BUỘC (Hãy mô phỏng chính xác định dạng này, có đánh số Câu 1, Câu 2...):
 
@@ -1014,9 +1051,21 @@ Câu 3: Một công ty tiến hành khai thác 17 giếng dầu trong khu vực 
 Đáp án: 5
 
 Lời giải:
-Câu 1: Lời giải ngắn gọn câu 1
-Câu 2: Lời giải ngắn gọn câu 2
-Câu 3: Lời giải ngắn gọn câu 3
+Câu 1: 
+- Ta có đạo hàm $y'$.
+- Lập bảng biến thiên trên $[2; 4]$.
+- Suy ra $\\min y = 6$.
+
+Câu 2: 
+a) Điều kiện: $x+1 \\neq 0 \\Rightarrow x \\neq -1$.
+b) Thay $m=3$, tính đạo hàm thấy hàm đồng biến...
+c) Thay $m=-2$...
+d) Giải phương trình tìm $m_0$...
+
+Câu 3: 
+- Gọi $x$ là số giếng thêm vào.
+- Hàm sản lượng: $f(x) = (17+x)(245-9x)$.
+- Tìm $\\max f(x)$ ta được $x=5$.
 
 Hãy tóm tắt các kiến thức cốt lõi và bắt đầu soạn đề thi ngay bây giờ:`;
                 } else if (type === 'matrix_anki') {
