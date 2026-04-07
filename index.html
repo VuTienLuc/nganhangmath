@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trình Tạo Prompt Giáo Viên Toán</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        /* Style for matrix table inputs */
+        .matrix-input {
+            width: 38px;
+            text-align: center;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 2px 1px;
+            font-size: 12px;
+        }
+        .matrix-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-800 p-2 md:p-4 lg:p-8">
+
+    <div class="max-w-[1400px] w-full mx-auto space-y-6">
+        <!-- Header -->
+        <div class="text-center space-y-2 mb-8">
+            <div class="inline-flex items-center justify-center p-3 bg-blue-100 text-blue-600 rounded-full mb-2">
+                <i class="fas fa-robot text-2xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-slate-900">Trình Tạo Prompt Toán Học</h1>
+            <p class="text-slate-500">Tạo Prompt Phụ Đạo & Soạn Đề Thi Theo Ma Trận</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Cột Trái (Form Nhập Liệu) - Được ưu tiên rộng hơn -->
+            <div class="lg:col-span-7 flex flex-col gap-6">
+                
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 h-fit flex flex-col gap-4">
+                    <div class="flex items-center justify-between border-b pb-2">
+                        <h2 class="text-lg font-semibold flex items-center text-slate-800">
+                            <i class="fas fa-edit mr-2 text-blue-500"></i> Thông tin đầu vào
+                        </h2>
+                    </div>
+
+                    <!-- Chuyển đổi chế độ -->
+                    <div class="flex bg-slate-100 p-1 rounded-lg">
+                        <button id="tab-practice" onclick="switchMode('practice')" class="flex-1 py-2 px-2 rounded-md bg-white shadow text-blue-600 font-semibold text-sm transition-all text-center">
+                            <i class="fas fa-book-open mr-1"></i> Phụ đạo / Bài tập
+                        </button>
+                        <button id="tab-matrix" onclick="switchMode('matrix')" class="flex-1 py-2 px-2 rounded-md text-slate-500 hover:text-slate-700 font-medium text-sm transition-all text-center">
+                            <i class="fas fa-table mr-1"></i> Ma trận Đề thi
+                        </button>
+                    </div>
+
+                    <!-- Chọn Lớp -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">
+                            1. Chọn Lớp <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex space-x-4">
+                            <label class="flex-1 cursor-pointer">
+                                <input type="radio" name="classSelect" value="10" class="peer sr-only" onchange="renderTopics()">
+                                <div class="text-center p-2 rounded-lg border border-slate-200 hover:bg-slate-50 peer-checked:bg-blue-50 peer-checked:border-blue-500 peer-checked:text-blue-700 font-medium transition-all text-sm">Lớp 10</div>
+                            </label>
+                            <label class="flex-1 cursor-pointer">
+                                <input type="radio" name="classSelect" value="11" class="peer sr-only" onchange="renderTopics()">
+                                <div class="text-center p-2 rounded-lg border border-slate-200 hover:bg-slate-50 peer-checked:bg-blue-50 peer-checked:border-blue-500 peer-checked:text-blue-700 font-medium transition-all text-sm">Lớp 11</div>
+                            </label>
+                            <label class="flex-1 cursor-pointer">
+                                <input type="radio" name="classSelect" value="12" class="peer sr-only" onchange="renderTopics()">
+                                <div class="text-center p-2 rounded-lg border border-slate-200 hover:bg-slate-50 peer-checked:bg-blue-50 peer-checked:border-blue-500 peer-checked:text-blue-700 font-medium transition-all text-sm">Lớp 12</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Chọn Bài (Chi tiết theo Chương) -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">
+                            2. Chọn nội dung (Tích chọn bài học) <span class="text-red-500">*</span>
+                        </label>
+                        <div id="topicContainer" class="h-48 overflow-y-auto border border-slate-200 rounded-lg p-2 bg-slate-50 space-y-2">
+                            <div class="text-slate-400 text-sm italic p-2 text-center mt-12">Vui lòng chọn Lớp để xem danh sách bài học...</div>
+                        </div>
+                    </div>
+
+                    <!-- Khu vực Chung: Văn bản bài học -->
+                    <div id="common-text-area" class="hidden">
+                        <label for="selectedTopicsText" class="block text-sm font-medium text-slate-700 mb-2">
+                            3. Văn bản các bài đã chọn (Có thể chỉnh sửa)
+                        </label>
+                        <textarea id="selectedTopicsText" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-sm font-mono"></textarea>
+                    </div>
+
+                    <!-- ================= CHẾ ĐỘ: PHỤ ĐẠO ================= -->
+                    <div id="practice-settings" class="flex flex-col gap-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="level" class="block text-sm font-medium text-slate-700 mb-2">4. Đối tượng học sinh</label>
+                                <select id="level" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-sm">
+                                    <option value="Trung bình">Trung bình</option>
+                                    <option value="Trung bình khá">Trung bình khá</option>
+                                    <option value="Khá giỏi">Khá giỏi</option>
+                                    <option value="Giỏi">Giỏi</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="numQuestions" class="block text-sm font-medium text-slate-700 mb-2">5. Số câu hỏi</label>
+                                <input type="number" id="numQuestions" value="10" min="1" max="100" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="notes" class="block text-sm font-medium text-slate-700 mb-2">6. Ghi chú thêm cho AI</label>
+                            <textarea id="notes" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors bg-white text-sm" placeholder="VD: Ưu tiên các bài toán thực tế..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- ================= CHẾ ĐỘ: MA TRẬN ================= -->
+                    <div id="matrix-settings" class="hidden flex flex-col gap-2">
+                        <div class="flex justify-between items-center mb-1 mt-2">
+                            <label class="block text-sm font-medium text-slate-700">4. Thiết lập Ma trận Đề thi</label>
+                            <div class="space-x-1 flex">
+                                <button onclick="exportMatrixExcel()" class="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200 transition-colors" title="Xuất Excel (.csv)"><i class="fas fa-file-excel mr-1"></i> Xuất Excel</button>
+                                <button onclick="exportMatrixText()" class="text-[11px] bg-slate-200 text-slate-700 px-2 py-1 rounded hover:bg-slate-300 transition-colors" title="Tải file Text (.txt)"><i class="fas fa-file-alt mr-1"></i> Xuất Text</button>
+                            </div>
+                        </div>
+                        
+                        <div class="border border-slate-300 rounded-lg max-h-72 shadow-inner bg-white overflow-hidden overflow-y-auto">
+                            <!-- Bỏ min-w-[600px] để bảng co giãn vừa khít -->
+                            <table class="w-full text-[11px] text-left border-collapse">
+                                <thead class="bg-slate-100 sticky top-0 shadow-sm z-10">
+                                    <tr>
+                                        <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300 w-[120px]">Bài học / Chuyên đề</th>
+                                        <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300 text-center" title="Phần 1: Trắc nghiệm 4 lựa chọn">TN</th>
+                                        <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300 text-center" title="Phần 2: Trắc nghiệm Đúng/Sai">Đ/S</th>
+                                        <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300 text-center" title="Phần 3: Trả lời ngắn">Ngắn</th>
+                                        <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300">Mức độ</th>
+                                        <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300">Loại bài</th>
+                                        <th class="px-1 py-2 font-semibold text-slate-700 border-b border-slate-300 text-center">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="matrixBody" class="divide-y divide-slate-100">
+                                    <tr>
+                                        <td colspan="7" class="text-center text-slate-400 p-4 italic">Vui lòng chọn bài học ở mục 2 để tạo ma trận.</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot class="bg-slate-50 sticky bottom-0 border-t-2 border-slate-300 font-semibold" id="matrixFooter" style="display: none;">
+                                    <tr>
+                                        <td class="px-2 py-2 text-right">Tổng cộng:</td>
+                                        <td class="px-1 py-2 text-center text-blue-700" id="totalTN">0</td>
+                                        <td class="px-1 py-2 text-center text-blue-700" id="totalTF">0</td>
+                                        <td class="px-1 py-2 text-center text-blue-700" id="totalSA">0</td>
+                                        <td colspan="3"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        <p class="text-[10px] text-slate-500 mt-1 italic">* Dùng dấu [+] để thêm dòng cho cùng 1 bài học (VD: tách riêng câu Nhận biết và Vận dụng).</p>
+                    </div>
+
+                    <!-- ================= CHỌN VAI TRÒ AI (ẨN) ================= -->
+                    <div class="border border-slate-200 rounded-lg bg-slate-50 overflow-hidden mt-2">
+                        <button type="button" onclick="document.getElementById('roleSelection').classList.toggle('hidden'); this.querySelector('i.fa-chevron-down').classList.toggle('rotate-180')" class="w-full px-4 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 flex justify-between items-center transition-colors">
+                            <span><i class="fas fa-user-graduate mr-2 text-indigo-500"></i> Chọn Vai trò sư phạm cho AI (Gợi ý tuỳ chọn)</span>
+                            <i class="fas fa-chevron-down transition-transform duration-300 text-slate-400"></i>
+                        </button>
+                        <div id="roleSelection" class="hidden p-3 border-t border-slate-200 bg-white">
+                            <select id="aiRole" class="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-slate-50 text-sm font-medium text-slate-800">
+                                <option value="default">Mặc định: Chuyên gia Toán học giàu kinh nghiệm</option>
+                                <option value="feynman">1. Phương pháp Feynman: Giải thích siêu đơn giản, loại bỏ thuật ngữ phức tạp</option>
+                                <option value="socratic">2. Phương pháp Socratic: Đặt câu hỏi gợi mở, dẫn dắt học sinh tự tư duy</option>
+                                <option value="bloom">3. Thang đo Bloom: Phân loại rạch ròi từ nhận biết đến sáng tạo</option>
+                                <option value="coach">4. Huấn luyện viên cá nhân: Khích lệ, động viên và phân tích kỹ lỗi sai</option>
+                                <option value="pbl">5. Giáo sư Problem-Based: Bắt đầu từ vấn đề thực tế để giải quyết</option>
+                                <option value="micro">6. Chuyên gia Microlearning: Chia nhỏ khối kiến thức cực ngắn, dễ tiêu hóa</option>
+                                <option value="spaced">7. Chuyên gia Spaced Repetition: Câu hỏi xoáy sâu bản chất để nhớ lâu</option>
+                                <option value="practical">8. Giáo viên Thực tiễn: Luôn liên kết công thức với ứng dụng đời sống</option>
+                                <option value="trap">9. Chuyên gia "Phá bẫy": Soạn đề lắt léo, chỉ điểm các lỗi sai phổ biến</option>
+                                <option value="multiple">10. Cố vấn Đa trí tuệ: Trình bày nhiều cách giải (Đại số, Hình học...) cho 1 bài</option>
+                            </select>
+                            <p class="text-[11px] text-slate-500 mt-2 italic">* Chọn một phương pháp giáo dục để AI thay đổi phong cách ra đề và diễn giải kiến thức.</p>
+                        </div>
+                    </div>
+
+                    <!-- Khu vực Nút Bấm -->
+                    <div id="action-buttons" class="mt-2 space-y-2">
+                        <button onclick="generatePrompt('practice')" id="btn-practice-gen" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg shadow-sm flex items-center justify-center transition-colors">
+                            <i class="fas fa-magic mr-2"></i> Sinh Prompt Phụ Đạo
+                        </button>
+                        
+                        <div id="matrix-action-buttons" class="hidden grid grid-cols-2 lg:grid-cols-4 gap-2">
+                            <button onclick="generatePrompt('matrix_table')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 px-2 text-[13px] rounded-lg shadow-sm flex items-center justify-center transition-colors">
+                                <i class="fas fa-table mr-2"></i> Prompt Bảng 9 Cột
+                            </button>
+                            <button onclick="generatePrompt('matrix_app')" class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-2 text-[13px] rounded-lg shadow-sm flex items-center justify-center transition-colors">
+                                <i class="fas fa-desktop mr-2"></i> Prompt App Trình Chiếu
+                            </button>
+                            <button onclick="generatePrompt('matrix_anki')" class="bg-amber-500 hover:bg-amber-600 text-white font-medium py-3 px-2 text-[13px] rounded-lg shadow-sm flex items-center justify-center transition-colors">
+                                <i class="fas fa-bolt mr-2"></i> Prompt Anki Flash
+                            </button>
+                            <button onclick="generatePrompt('matrix_anki_mc')" class="bg-teal-500 hover:bg-teal-600 text-white font-medium py-3 px-2 text-[13px] rounded-lg shadow-sm flex items-center justify-center transition-colors">
+                                <i class="fas fa-list-ul mr-2"></i> Prompt Anki MC
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Block: Prompt Đã Lưu -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col gap-4 flex-grow">
+                    <h2 class="text-lg font-semibold flex items-center text-slate-800 border-b pb-2">
+                        <i class="fas fa-save mr-2 text-blue-500"></i> Lịch Sử Đã Lưu
+                    </h2>
+                    <div id="savedPromptsList" class="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                        <!-- Danh sách prompt -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cột Phải (Kết quả) - Được thu gọn lại một chút -->
+            <div class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col h-[850px]">
+                <div class="flex items-center justify-between mb-4 border-b pb-2">
+                    <h2 class="text-lg font-semibold flex items-center text-slate-800">
+                        <i class="fas fa-file-code mr-2 text-emerald-500"></i> Kết quả Prompt
+                    </h2>
+                    <div class="flex space-x-2">
+                        <button onclick="savePrompt()" id="saveBtn"
+                            class="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium py-1.5 px-3 rounded-md transition-colors flex items-center">
+                            <i class="fas fa-bookmark mr-1.5"></i> <span>Lưu</span>
+                        </button>
+                        <button onclick="copyPrompt()" id="copyBtn"
+                            class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1.5 px-3 rounded-md transition-colors flex items-center">
+                            <i class="far fa-copy mr-1.5"></i> <span>Sao chép</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex-grow relative">
+                    <textarea id="promptOutput"
+                        class="w-full h-full p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono text-slate-700 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="Kết quả prompt sẽ hiển thị ở đây..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'practice'; // 'practice' or 'matrix'
+        let lastGeneratedType = 'practice'; // Track which button was clicked for saving
+        let matrixRows = []; // Cấu trúc mới hỗ trợ nhiều dòng cho 1 bài học: [{ id, lesson, tn, tf, sa, level, type }]
+
+        // Dữ liệu chuyên đề được tách nhỏ thành từng chương và từng bài
+        const topicData = {
+            "10": [
+                { chapter: "Chương 1: Mệnh đề và tập hợp", lessons: ["Khái niệm mệnh đề", "Các tập hợp số", "Các phép toán trên tập hợp"] },
+                { chapter: "Chương 2: Bất phương trình bậc nhất hai ẩn", lessons: ["Bất PT bậc nhất hai ẩn", "Hệ bất PT bậc nhất hai ẩn", "Biểu diễn miền nghiệm"] },
+                { chapter: "Chương 3: Hàm số bậc hai", lessons: ["Ôn tập hàm số cơ bản", "Khảo sát và vẽ đồ thị HS bậc hai"] },
+                { chapter: "Chương 4: Hệ thức lượng trong tam giác", lessons: ["Giá trị lượng giác 0-180", "Định lí sin và côsin", "Giải tam giác thực tế"] },
+                { chapter: "Chương 5: Vectơ", lessons: ["Khái niệm vectơ", "Tổng và hiệu vectơ", "Tích vectơ với một số", "Tích vô hướng"] },
+                { chapter: "Chương 6: Thống kê", lessons: ["Số gần đúng và sai số", "Mô tả dữ liệu", "Số đặc trưng đo xu thế", "Số đo mức độ phân tán"] },
+                { chapter: "Chương 7: Bất PT bậc hai", lessons: ["Dấu tam thức bậc hai", "Giải bất PT bậc hai", "PT vô tỉ quy về bậc hai"] },
+                { chapter: "Chương 8: Đại số tổ hợp", lessons: ["Quy tắc cộng nhân", "Hoán vị, chỉnh hợp, tổ hợp", "Nhị thức Newton"] },
+                { chapter: "Chương 9: Toạ độ mặt phẳng", lessons: ["Toạ độ vectơ", "PT đường thẳng", "PT đường tròn", "Ba đường conic"] },
+                { chapter: "Chương 10: Xác suất", lessons: ["Không gian mẫu và biến cố", "Xác suất của biến cố"] }
+            ],
+            "11": [
+                { chapter: "Chương 1: Lượng giác", lessons: ["Góc lượng giác", "Giá trị lượng giác", "Công thức lượng giác", "Hàm số lượng giác", "PT lượng giác cơ bản"] },
+                { chapter: "Chương 2: Dãy số", lessons: ["Dãy số", "Cấp số cộng", "Cấp số nhân"] },
+                { chapter: "Chương 3: Giới hạn - Liên tục", lessons: ["Giới hạn dãy số", "Giới hạn hàm số", "Hàm số liên tục"] },
+                { chapter: "Chương 4: Quan hệ song song", lessons: ["Điểm, ĐT, MP", "ĐT song song", "ĐT song song MP", "Hai MP song song"] },
+                { chapter: "Chương 5: Thống kê ghép nhóm", lessons: ["Số trung bình, mốt", "Trung vị, tứ phân vị"] },
+                { chapter: "Chương 6: Mũ và Lôgarit", lessons: ["Luỹ thừa", "Lôgarit", "Hàm số mũ, lôgarit", "PT, BPT mũ lôgarit"] },
+                { chapter: "Chương 7: Đạo hàm", lessons: ["Khái niệm đạo hàm", "Quy tắc tính đạo hàm", "Đạo hàm cấp hai"] },
+                { chapter: "Chương 8: Quan hệ vuông góc", lessons: ["Hai ĐT vuông góc", "ĐT vuông góc MP", "Hai MP vuông góc", "Khoảng cách, Góc nhị diện"] },
+                { chapter: "Chương 9: Xác suất", lessons: ["Biến cố giao, hợp", "Biến cố độc lập", "Quy tắc cộng, nhân xác suất"] }
+            ],
+            "12": [
+                { chapter: "Chương 1: Ứng dụng đạo hàm", lessons: ["Tính đơn điệu, cực trị", "Max, Min", "Tiệm cận", "Khảo sát vẽ đồ thị"] },
+                { chapter: "Chương 2: Vectơ không gian Oxyz", lessons: ["Vectơ không gian", "Hệ toạ độ Oxyz", "Biểu thức toạ độ"] },
+                { chapter: "Chương 3: Thống kê (Mức độ phân tán)", lessons: ["Khoảng biến thiên, tứ phân vị", "Phương sai, độ lệch chuẩn"] },
+                { chapter: "Chương 4: Nguyên hàm - Tích phân", lessons: ["Nguyên hàm", "Tích phân", "Ứng dụng hình học"] },
+                { chapter: "Chương 5: Hình Oxyz", lessons: ["PT mặt phẳng", "PT đường thẳng", "PT mặt cầu"] },
+                { chapter: "Chương 6: Xác suất có điều kiện", lessons: ["Xác suất có điều kiện", "Công thức Bayes"] }
+            ]
+        };
+
+        // Switch Tabs Mode
+        function switchMode(mode) {
+            currentMode = mode;
+            const btnPractice = document.getElementById('tab-practice');
+            const btnMatrix = document.getElementById('tab-matrix');
+            const panelPractice = document.getElementById('practice-settings');
+            const panelMatrix = document.getElementById('matrix-settings');
+            
+            const btnPracticeGen = document.getElementById('btn-practice-gen');
+            const matrixActionBtns = document.getElementById('matrix-action-buttons');
+
+            if (mode === 'practice') {
+                btnPractice.className = "flex-1 py-2 px-2 rounded-md bg-white shadow text-blue-600 font-semibold text-sm transition-all text-center";
+                btnMatrix.className = "flex-1 py-2 px-2 rounded-md text-slate-500 hover:text-slate-700 font-medium text-sm transition-all text-center";
+                panelPractice.classList.remove('hidden');
+                panelMatrix.classList.add('hidden');
+                
+                btnPracticeGen.classList.remove('hidden');
+                matrixActionBtns.classList.add('hidden');
+            } else {
+                btnMatrix.className = "flex-1 py-2 px-2 rounded-md bg-white shadow text-blue-600 font-semibold text-sm transition-all text-center";
+                btnPractice.className = "flex-1 py-2 px-2 rounded-md text-slate-500 hover:text-slate-700 font-medium text-sm transition-all text-center";
+                panelPractice.classList.add('hidden');
+                panelMatrix.classList.remove('hidden');
+                
+                btnPracticeGen.classList.add('hidden');
+                matrixActionBtns.classList.remove('hidden');
+            }
+        }
+
+        function renderTopics() {
+            const selectedClass = document.querySelector('input[name="classSelect"]:checked')?.value;
+            const container = document.getElementById('topicContainer');
+            if (!selectedClass) return;
+
+            const chapters = topicData[selectedClass];
+            container.innerHTML = ''; 
+
+            const chapterColors = ['bg-blue-100 text-blue-900 border-blue-200', 'bg-emerald-100 text-emerald-900 border-emerald-200', 'bg-amber-100 text-amber-900 border-amber-200', 'bg-purple-100 text-purple-900 border-purple-200', 'bg-rose-100 text-rose-900 border-rose-200'];
+
+            chapters.forEach((chapterObj, index) => {
+                const colorClass = chapterColors[index % chapterColors.length];
+                const chapterDiv = document.createElement('div');
+                chapterDiv.className = "mb-2 bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm transition-all";
+                
+                const header = document.createElement('div');
+                header.className = `px-3 py-2 font-semibold text-[13px] cursor-pointer flex justify-between items-center transition-colors hover:opacity-90 ${colorClass}`;
+                header.innerHTML = `<span class="flex-1 pr-2">${chapterObj.chapter}</span><i class="fas fa-chevron-down transition-transform duration-300 opacity-70"></i>`;
+
+                const lessonList = document.createElement('div');
+                lessonList.className = "hidden p-1 space-y-1 bg-slate-50 border-t border-slate-100";
+
+                chapterObj.lessons.forEach((lesson) => {
+                    const label = document.createElement('label');
+                    label.className = "flex items-start space-x-2 p-1.5 hover:bg-white rounded-md cursor-pointer transition-all border border-transparent hover:border-slate-300";
+                    label.innerHTML = `
+                        <input type="checkbox" data-chapter="${chapterObj.chapter}" value="${lesson}" class="mt-0.5 w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 topic-checkbox" onchange="handleSelectionChange()">
+                        <span class="text-[13px] text-slate-700 leading-snug">${lesson}</span>
+                    `;
+                    lessonList.appendChild(label);
+                });
+
+                header.addEventListener('click', () => {
+                    lessonList.classList.toggle('hidden');
+                    header.querySelector('i').classList.toggle('rotate-180');
+                });
+
+                chapterDiv.appendChild(header);
+                chapterDiv.appendChild(lessonList);
+                container.appendChild(chapterDiv);
+            });
+        }
+
+        function handleSelectionChange() {
+            updateSelectedTopicsText();
+            syncMatrixDataWithSelection();
+            renderMatrixTable();
+        }
+
+        function updateSelectedTopicsText() {
+            const checkboxes = document.querySelectorAll('.topic-checkbox:checked');
+            const selectedByChapter = {};
+            checkboxes.forEach(cb => {
+                const chapter = cb.dataset.chapter;
+                if (!selectedByChapter[chapter]) selectedByChapter[chapter] = [];
+                selectedByChapter[chapter].push(cb.value);
+            });
+
+            let topicListStr = "";
+            for (const [chapter, lessons] of Object.entries(selectedByChapter)) {
+                topicListStr += `\n  * ${chapter}:`;
+                lessons.forEach(l => { topicListStr += `\n    - ${l}`; });
+            }
+            document.getElementById('selectedTopicsText').value = topicListStr;
+            if(topicListStr !== "") document.getElementById('common-text-area').classList.remove('hidden');
+            else document.getElementById('common-text-area').classList.add('hidden');
+        }
+
+        // --- HỆ THỐNG MA TRẬN ĐỀ THI (HỖ TRỢ NHIỀU DÒNG) ---
+        function syncMatrixDataWithSelection() {
+            let newMatrixRows = [];
+            const checkboxes = Array.from(document.querySelectorAll('.topic-checkbox:checked')).map(cb => cb.value);
+            
+            checkboxes.forEach(lesson => {
+                // Giữ lại các dòng đã cấu hình cho bài học này
+                const existingRows = matrixRows.filter(r => r.lesson === lesson);
+                if (existingRows.length > 0) {
+                    newMatrixRows.push(...existingRows);
+                } else {
+                    // Nếu là bài học mới tích chọn, tạo 1 dòng mặc định
+                    newMatrixRows.push({ 
+                        id: 'id_' + Date.now() + Math.random().toString(36).substr(2, 5), 
+                        lesson: lesson, tn: 0, tf: 0, sa: 0, 
+                        level: 'Nhận biết', type: 'Toán Thuần túy' 
+                    });
+                }
+            });
+            matrixRows = newMatrixRows;
+        }
+
+        function addMatrixRow(lesson, insertAfterId) {
+            const index = matrixRows.findIndex(r => r.id === insertAfterId);
+            if (index !== -1) {
+                // Chèn thêm 1 dòng ngay sau dòng hiện tại cho cùng bài học
+                matrixRows.splice(index + 1, 0, { 
+                    id: 'id_' + Date.now() + Math.random().toString(36).substr(2, 5), 
+                    lesson: lesson, tn: 0, tf: 0, sa: 0, 
+                    level: 'Thông hiểu', // Đổi mức độ mặc định cho dòng mới để tránh trùng
+                    type: 'Toán Thuần túy' 
+                });
+                renderMatrixTable();
+            }
+        }
+
+        function removeMatrixRow(id) {
+            matrixRows = matrixRows.filter(r => r.id !== id);
+            renderMatrixTable();
+            calcMatrixTotals();
+        }
+
+        function updateRowData(id, field, value) {
+            const row = matrixRows.find(r => r.id === id);
+            if (row) {
+                row[field] = value;
+                if (field === 'tn' || field === 'tf' || field === 'sa') calcMatrixTotals();
+            }
+        }
+
+        function renderMatrixTable() {
+            const tbody = document.getElementById('matrixBody');
+            const tfoot = document.getElementById('matrixFooter');
+            
+            if (matrixRows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-slate-400 p-4 italic">Vui lòng chọn bài học ở mục 2 để tạo ma trận.</td></tr>';
+                tfoot.style.display = 'none';
+                return;
+            }
+
+            let html = '';
+            // Lấy danh sách các bài học duy nhất để nhóm theo Rowspan
+            const lessons = [...new Set(matrixRows.map(r => r.lesson))];
+            
+            lessons.forEach(lesson => {
+                const rowsForLesson = matrixRows.filter(r => r.lesson === lesson);
+                rowsForLesson.forEach((row, index) => {
+                    const isBorderBottom = index === rowsForLesson.length - 1 ? 'border-b-2 border-slate-200' : 'border-b border-slate-100 border-dashed';
+                    html += `<tr class="hover:bg-blue-50 transition-colors">`;
+                    
+                    // Gộp cột Tên bài học (Rowspan)
+                    if (index === 0) {
+                        html += `<td rowspan="${rowsForLesson.length}" class="px-1 py-2 border-b-2 border-r border-slate-200 text-slate-800 font-medium align-middle max-w-[120px] break-words bg-white" title="${lesson}">${lesson}</td>`;
+                    }
+                    
+                    html += `
+                        <td class="px-1 py-1.5 ${isBorderBottom} text-center"><input type="number" min="0" class="matrix-input" value="${row.tn}" onchange="updateRowData('${row.id}', 'tn', this.value)"></td>
+                        <td class="px-1 py-1.5 ${isBorderBottom} text-center"><input type="number" min="0" class="matrix-input" value="${row.tf}" onchange="updateRowData('${row.id}', 'tf', this.value)"></td>
+                        <td class="px-1 py-1.5 ${isBorderBottom} text-center"><input type="number" min="0" class="matrix-input" value="${row.sa}" onchange="updateRowData('${row.id}', 'sa', this.value)"></td>
+                        <td class="px-1 py-1.5 ${isBorderBottom}">
+                            <select class="w-[80px] text-[11px] p-1 border border-slate-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" onchange="updateRowData('${row.id}', 'level', this.value)">
+                                <option value="Nhận biết" ${row.level === 'Nhận biết' ? 'selected' : ''}>Nhận biết</option>
+                                <option value="Thông hiểu" ${row.level === 'Thông hiểu' ? 'selected' : ''}>Thông hiểu</option>
+                                <option value="Vận dụng" ${row.level === 'Vận dụng' ? 'selected' : ''}>Vận dụng</option>
+                                <option value="Vận dụng cao" ${row.level === 'Vận dụng cao' ? 'selected' : ''}>Vận dụng cao</option>
+                                <option value="Trộn đều" ${row.level === 'Trộn đều' ? 'selected' : ''}>Trộn đều</option>
+                            </select>
+                        </td>
+                        <td class="px-1 py-1.5 ${isBorderBottom}">
+                            <select class="w-[80px] text-[11px] p-1 border border-slate-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" onchange="updateRowData('${row.id}', 'type', this.value)">
+                                <option value="Toán Thuần túy" ${row.type === 'Toán Thuần túy' ? 'selected' : ''}>Thuần túy</option>
+                                <option value="Toán Thực tế" ${row.type === 'Toán Thực tế' ? 'selected' : ''}>Thực tế</option>
+                                <option value="Kết hợp" ${row.type === 'Kết hợp' ? 'selected' : ''}>Kết hợp</option>
+                            </select>
+                        </td>
+                        <td class="px-1 py-1.5 ${isBorderBottom} text-center space-x-0.5 whitespace-nowrap">
+                            <button onclick="addMatrixRow('${lesson}', '${row.id}')" class="text-blue-500 hover:bg-blue-100 p-1.5 rounded transition-colors" title="Thêm dòng cho bài học này"><i class="fas fa-plus text-[10px]"></i></button>
+                            ${rowsForLesson.length > 1 ? `<button onclick="removeMatrixRow('${row.id}')" class="text-red-400 hover:bg-red-100 p-1.5 rounded transition-colors" title="Xóa dòng này"><i class="fas fa-trash text-[10px]"></i></button>` : `<button class="p-1.5 opacity-0 cursor-default"><i class="fas fa-trash text-[10px]"></i></button>`}
+                        </td>
+                    </tr>`;
+                });
+            });
+            
+            tbody.innerHTML = html;
+            tfoot.style.display = 'table-row-group';
+            calcMatrixTotals();
+        }
+
+        function calcMatrixTotals() {
+            let t_tn = 0, t_tf = 0, t_sa = 0;
+            matrixRows.forEach(r => {
+                t_tn += parseInt(r.tn) || 0;
+                t_tf += parseInt(r.tf) || 0;
+                t_sa += parseInt(r.sa) || 0;
+            });
+            document.getElementById('totalTN').textContent = t_tn;
+            document.getElementById('totalTF').textContent = t_tf;
+            document.getElementById('totalSA').textContent = t_sa;
+        }
+
+        // Xuất file
+        function getMatrixDataString() {
+            let result = [];
+            matrixRows.forEach(row => {
+                const tn = parseInt(row.tn) || 0;
+                const tf = parseInt(row.tf) || 0;
+                const sa = parseInt(row.sa) || 0;
+                if (tn > 0 || tf > 0 || sa > 0) {
+                    result.push(row);
+                }
+            });
+            return result;
+        }
+
+        // Hàm hỗ trợ tự động tìm tên Chương dựa vào tên Bài học
+        function getChapterByLesson(lessonName) {
+            for (const classKey in topicData) {
+                for (const chapterObj of topicData[classKey]) {
+                    if (chapterObj.lessons.includes(lessonName)) {
+                        const parts = chapterObj.chapter.split(':');
+                        return parts.length > 1 ? parts[1].trim() : chapterObj.chapter;
+                    }
+                }
+            }
+            return "CHỦ ĐỀ KHÁC";
+        }
+
+        function exportMatrixExcel() {
+            if (matrixRows.length === 0) { 
+                showToast('Ma trận trống. Vui lòng chọn bài học và điền số câu.'); 
+                return; 
+            }
+
+            // 1. Gom nhóm dữ liệu
+            const aggregated = {};
+            let tt = 1;
+            matrixRows.forEach(row => {
+                if (!aggregated[row.lesson]) {
+                    aggregated[row.lesson] = {
+                        tt: tt++,
+                        chapter: getChapterByLesson(row.lesson),
+                        lesson: row.lesson,
+                        pi_nb: 0, pi_th: 0, pi_vd: 0,
+                        pii_nb: 0, pii_th: 0, pii_vd: 0,
+                        piii_nb: 0, piii_th: 0, piii_vd: 0,
+                    };
+                }
+                const data = aggregated[row.lesson];
+                const tn = parseInt(row.tn) || 0;
+                const tf = parseInt(row.tf) || 0;
+                const sa = parseInt(row.sa) || 0;
+
+                // Phân bổ số câu vào đúng cột dựa theo mức độ nhận thức
+                if (row.level.includes('Nhận biết')) {
+                    data.pi_nb += tn; data.pii_nb += tf; data.piii_nb += sa;
+                } else if (row.level.includes('Thông hiểu') || row.level.includes('Trộn đều')) {
+                    data.pi_th += tn; data.pii_th += tf; data.piii_th += sa;
+                } else if (row.level.includes('Vận dụng')) {
+                    data.pi_vd += tn; data.pii_vd += tf; data.piii_vd += sa;
+                }
+            });
+
+            // 2. Pass 1: Tính tổng toàn bộ (câu và điểm)
+            let sum_pi_nb = 0, sum_pi_th = 0, sum_pi_vd = 0;
+            let sum_pii_nb = 0, sum_pii_th = 0, sum_pii_vd = 0;
+            let sum_piii_nb = 0, sum_piii_th = 0, sum_piii_vd = 0;
+            let sum_nb = 0, sum_th = 0, sum_vd = 0, sum_total = 0, sum_score = 0;
+
+            for (const key in aggregated) {
+                const d = aggregated[key];
+                sum_pi_nb += d.pi_nb; sum_pi_th += d.pi_th; sum_pi_vd += d.pi_vd;
+                sum_pii_nb += d.pii_nb; sum_pii_th += d.pii_th; sum_pii_vd += d.pii_vd;
+                sum_piii_nb += d.piii_nb; sum_piii_th += d.piii_th; sum_piii_vd += d.piii_vd;
+                
+                sum_total += (d.pi_nb + d.pii_nb + d.piii_nb + d.pi_th + d.pii_th + d.piii_th + d.pi_vd + d.pii_vd + d.piii_vd);
+                
+                const p1_total = d.pi_nb + d.pi_th + d.pi_vd;
+                const p2_total = d.pii_nb + d.pii_th + d.pii_vd;
+                const p3_total = d.piii_nb + d.piii_th + d.piii_vd;
+                sum_score += (p1_total * 0.25) + (p2_total * 1.0) + (p3_total * 0.5);
+            }
+
+            // 3. Pass 2: Tạo mã HTML xuất Excel
+            let rowsHtml = '';
+            for (const key in aggregated) {
+                const d = aggregated[key];
+                const row_nb = d.pi_nb + d.pii_nb + d.piii_nb;
+                const row_th = d.pi_th + d.pii_th + d.piii_th;
+                const row_vd = d.pi_vd + d.pii_vd + d.piii_vd;
+                const row_total = row_nb + row_th + row_vd;
+
+                sum_nb += row_nb; sum_th += row_th; sum_vd += row_vd;
+
+                // Tính điểm hàng: TN (0.25), Đ/S (1.0), TLN (0.5)
+                const p1_total = d.pi_nb + d.pi_th + d.pi_vd;
+                const p2_total = d.pii_nb + d.pii_th + d.pii_vd;
+                const p3_total = d.piii_nb + d.piii_th + d.piii_vd;
+                const row_score = (p1_total * 0.25) + (p2_total * 1.0) + (p3_total * 0.5);
+
+                // Tính tỉ lệ phần trăm dựa trên điểm số
+                const percentage = sum_score > 0 ? ((row_score / sum_score) * 100).toFixed(1) : 0;
+                const displayPercentage = percentage.toString().replace('.0', '') + '%';
+
+                rowsHtml += `<tr>
+                    <td>${d.tt}</td>
+                    <td style="text-align: left;">${d.chapter.toUpperCase()}</td>
+                    <td style="text-align: left;">${d.lesson.toUpperCase()}</td>
+                    <td>${d.pi_nb || ''}</td><td>${d.pi_th || ''}</td><td>${d.pi_vd || ''}</td>
+                    <td>${d.pii_nb || ''}</td><td>${d.pii_th || ''}</td><td>${d.pii_vd || ''}</td>
+                    <td>${d.piii_nb || ''}</td><td>${d.piii_th || ''}</td><td>${d.piii_vd || ''}</td>
+                    <td>${row_nb || ''}</td><td>${row_th || ''}</td><td>${row_vd || ''}</td>
+                    <td><b>${row_total || ''} câu<br>${row_score > 0 ? row_score + ' điểm' : ''}</b></td>
+                    <td><b>${displayPercentage}</b></td>
+                </tr>`;
+            }
+
+            // Tính toán Điểm & % cho các ô Tổng
+            let sum_nb_score = (sum_pi_nb * 0.25) + (sum_pii_nb * 1.0) + (sum_piii_nb * 0.5);
+            let sum_th_score = (sum_pi_th * 0.25) + (sum_pii_th * 1.0) + (sum_piii_th * 0.5);
+            let sum_vd_score = (sum_pi_vd * 0.25) + (sum_pii_vd * 1.0) + (sum_piii_vd * 0.5);
+
+            let pct_p1 = sum_score > 0 ? (((sum_pi_nb + sum_pi_th + sum_pi_vd) * 0.25) / sum_score * 100).toFixed(0) + '%' : '0%';
+            let pct_p2 = sum_score > 0 ? (((sum_pii_nb + sum_pii_th + sum_pii_vd) * 1.0) / sum_score * 100).toFixed(0) + '%' : '0%';
+            let pct_p3 = sum_score > 0 ? (((sum_piii_nb + sum_piii_th + sum_piii_vd) * 0.5) / sum_score * 100).toFixed(0) + '%' : '0%';
+
+            let html = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head>
+                <meta charset="utf-8">
+                <style>
+                    table { border-collapse: collapse; font-family: 'Times New Roman', Times, serif; }
+                    th, td { border: 1px solid #000000; padding: 5px; text-align: center; vertical-align: middle; }
+                    .header-blue { background-color: #8faadc; font-weight: bold; }
+                    .header-light-blue { background-color: #bdd7ee; font-weight: bold; }
+                    .title { font-size: 14pt; font-weight: bold; color: #000080; border: none; text-align: center; }
+                </style>
+            </head>
+            <body>
+                <table>
+                    <tr><th colspan="17" class="title">MA TRẬN ĐỀ KIỂM TRA<br>NĂM HỌC 2024 - 2025</th></tr>
+                    <tr><td colspan="17" style="border: none;"></td></tr>
+                    <tr>
+                        <th rowspan="3" class="header-blue">TT</th>
+                        <th rowspan="3" class="header-blue">CHƯƠNG / CHỦ ĐỀ</th>
+                        <th rowspan="3" class="header-blue">NỘI DUNG / ĐƠN VỊ KIẾN THỨC</th>
+                        <th colspan="9" class="header-blue">MỨC ĐỘ NHẬN THỨC</th>
+                        <th colspan="5" class="header-blue">TỔNG</th>
+                    </tr>
+                    <tr>
+                        <th colspan="3" class="header-light-blue">P I. TNKQ</th>
+                        <th colspan="3" class="header-light-blue">P II. ĐÚNG - SAI</th>
+                        <th colspan="3" class="header-light-blue">P III. TLN / TL</th>
+                        <th rowspan="2" class="header-light-blue">NB</th>
+                        <th rowspan="2" class="header-light-blue">TH</th>
+                        <th rowspan="2" class="header-light-blue">VD</th>
+                        <th rowspan="2" class="header-light-blue">Số câu<br>Số điểm</th>
+                        <th rowspan="2" class="header-light-blue">Tỉ lệ (%)</th>
+                    </tr>
+                    <tr>
+                        <th class="header-light-blue">NB</th><th class="header-light-blue">TH</th><th class="header-light-blue">VD</th>
+                        <th class="header-light-blue">NB</th><th class="header-light-blue">TH</th><th class="header-light-blue">VD</th>
+                        <th class="header-light-blue">NB</th><th class="header-light-blue">TH</th><th class="header-light-blue">VD</th>
+                    </tr>
+                    ${rowsHtml}
+                    <tr style="font-weight: bold; background-color: #e2efda;">
+                        <td colspan="3" style="text-align: right;">Tổng số câu</td>
+                        <td>${sum_pi_nb || 0}</td><td>${sum_pi_th || 0}</td><td>${sum_pi_vd || 0}</td>
+                        <td>${sum_pii_nb || 0}</td><td>${sum_pii_th || 0}</td><td>${sum_pii_vd || 0}</td>
+                        <td>${sum_piii_nb || 0}</td><td>${sum_piii_th || 0}</td><td>${sum_piii_vd || 0}</td>
+                        <td>${sum_nb || 0}</td><td>${sum_th || 0}</td><td>${sum_vd || 0}</td>
+                        <td>${sum_total} câu</td>
+                        <td></td>
+                    </tr>
+                    <tr style="font-weight: bold; background-color: #e2efda;">
+                        <td colspan="3" style="text-align: right;">Tổng số điểm</td>
+                        <td>${sum_pi_nb * 0.25 || 0}</td><td>${sum_pi_th * 0.25 || 0}</td><td>${sum_pi_vd * 0.25 || 0}</td>
+                        <td>${sum_pii_nb * 1.0 || 0}</td><td>${sum_pii_th * 1.0 || 0}</td><td>${sum_pii_vd * 1.0 || 0}</td>
+                        <td>${sum_piii_nb * 0.5 || 0}</td><td>${sum_piii_th * 0.5 || 0}</td><td>${sum_piii_vd * 0.5 || 0}</td>
+                        <td>${sum_nb_score || 0}</td><td>${sum_th_score || 0}</td><td>${sum_vd_score || 0}</td>
+                        <td>${sum_score} điểm</td>
+                        <td></td>
+                    </tr>
+                    <tr style="font-weight: bold; background-color: #e2efda;">
+                        <td colspan="3" style="text-align: right;">Tỉ lệ (%)</td>
+                        <td colspan="3">${pct_p1}</td>
+                        <td colspan="3">${pct_p2}</td>
+                        <td colspan="3">${pct_p3}</td>
+                        <td></td><td></td><td></td>
+                        <td></td>
+                        <td>100%</td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+            `;
+
+            // 3. Kích hoạt tải về file .xls
+            const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Ma_Tran_De_Thi_${new Date().getTime()}.xls`;
+            a.click();
+            showToast('Đã tải xuống file Excel (.xls) theo đúng định dạng mẫu', true);
+        }
+
+        function exportMatrixText() {
+            const data = getMatrixDataString();
+            if(!data || data.length===0) { showToast('Ma trận trống hoặc các giá trị bằng 0.'); return; }
+            
+            let txt = "MA TRẬN ĐỀ THI TOÁN\n===================\n\n";
+            data.forEach(row => {
+                txt += `- Bài: ${row.lesson}\n`;
+                txt += `  + TN 4 phương án: ${row.tn || 0} câu\n`;
+                txt += `  + Đúng/Sai: ${row.tf || 0} câu\n`;
+                txt += `  + Trả lời ngắn: ${row.sa || 0} câu\n`;
+                txt += `  + Mức độ: ${row.level} | Định hướng: ${row.type}\n\n`;
+            });
+
+            const blob = new Blob([txt], { type: 'text/plain;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Ma_Tran_Toan_${new Date().getTime()}.txt`;
+            a.click();
+            showToast('Đã tải xuống file Text', true);
+        }
+
+        // --- HÀM LẤY VAI TRÒ CHUYÊN GIA ---
+        function getSelectedRole() {
+            const roleKey = document.getElementById('aiRole')?.value || 'default';
+            const roles = {
+                'default': 'Đóng vai trò là một Chuyên gia Toán học giàu kinh nghiệm, văn phong lịch sự, chân thành, sắc bén.',
+                'feynman': 'Đóng vai trò là một nhà giáo dục bậc thầy áp dụng phương pháp Feynman. Hãy giải thích mọi khái niệm toán học một cách siêu đơn giản, loại bỏ các thuật ngữ phức tạp, biến cái khó thành cái dễ hiểu như đang giảng cho học sinh cấp 2.',
+                'socratic': 'Đóng vai trò là một người thầy theo trường phái Socratic. Văn phong của bạn mang tính gợi mở, luôn đặt ra những câu hỏi kích thích tư duy để dẫn dắt học sinh tự tìm ra đáp án thay vì giải hộ toàn bộ.',
+                'bloom': 'Đóng vai trò là chuyên gia sư phạm ứng dụng Thang đo Bloom. Đảm bảo hệ thống câu hỏi có sự phân hóa rạch ròi, kích thích các cấp độ nhận thức từ ghi nhớ, thông hiểu đến vận dụng sáng tạo.',
+                'coach': 'Đóng vai trò là một huấn luyện viên học tập cá nhân tràn đầy năng lượng. Bạn luôn dùng lời lẽ khích lệ, động viên, đồng thời phân tích cực kỳ chi tiết nguyên nhân dẫn đến các lỗi sai thường gặp của học sinh.',
+                'pbl': 'Đóng vai trò là Giáo sư áp dụng phương pháp Học tập dựa trên Vấn đề (Problem-Based Learning). Bạn luôn khéo léo đặt các kiến thức toán học khô khan vào ngữ cảnh của một vấn đề thực tiễn cần giải quyết.',
+                'micro': 'Đóng vai trò là chuyên gia thiết kế Microlearning. Bạn có khả năng chia nhỏ các khối kiến thức và hướng dẫn giải thành những bước cực kỳ ngắn gọn, súc tích, dễ đọc lướt và dễ tiêu hóa nhất.',
+                'spaced': 'Đóng vai trò là chuyên gia về trí nhớ và học tập ngắt quãng (Spaced Repetition). Cách bạn đặt câu hỏi và gợi ý sẽ đi thẳng vào bản chất cốt lõi, giúp học sinh khắc sâu ký ức và dễ dàng ôn tập lại.',
+                'practical': 'Đóng vai trò là một Giáo viên Toán thực tiễn. Mọi bài toán, mọi lời giải và gợi ý của bạn đều phải cố gắng liên hệ đến các ứng dụng thực tế trong đời sống, kỹ thuật hoặc kinh tế.',
+                'trap': 'Đóng vai trò là chuyên gia "Phá bẫy" luyện thi. Bạn tập trung tối đa vào việc giăng bẫy qua các phương án nhiễu, đồng thời chỉ điểm trực tiếp các lỗi tư duy sai lệch phổ biến mà học sinh hay mắc phải.',
+                'multiple': 'Đóng vai trò là Cố vấn học tập theo thuyết Đa trí tuệ. Đối với các bài tập, hãy cố gắng cung cấp hoặc gợi ý nhiều cách tiếp cận khác nhau (Đại số, Hình học, Trực quan, Bấm máy tính) để giải quyết một vấn đề.'
+            };
+            return roles[roleKey];
+        }
+
+        // --- GEN PROMPT ---
+        function generatePrompt(type) {
+            lastGeneratedType = type; // Save for the 'Lịch sử' naming
+            const topicListEl = document.getElementById('selectedTopicsText');
+            const topicListStr = topicListEl?.value || "";
+            
+            if (!topicListStr.trim()) {
+                showToast('Vui lòng chọn hoặc nhập ít nhất 1 bài học!');
+                return;
+            }
+
+            const outputArea = document.getElementById('promptOutput');
+            const roleString = getSelectedRole(); // Lấy nội dung vai trò đã chọn
+            let promptTemplate = "";
+
+            if (type === 'practice') {
+                // Logic: Phụ đạo
+                const level = document.getElementById('level')?.value || "Trung bình";
+                const numQuestions = document.getElementById('numQuestions')?.value || "10";
+                const notesInput = document.getElementById('notes')?.value?.trim() || "";
+                const noteText = notesInput ? notesInput : "Không có yêu cầu thêm. Hãy làm theo form chuẩn.";
+
+                promptTemplate = `MẪU PROMPT TỔNG QUÁT (SAO CHÉP ĐỂ SỬ DỤNG)
+Vai trò: ${roleString}
+(Lưu ý: Bạn đồng thời là một Chuyên gia LaTeX am hiểu cấu trúc đề kiểm tra Toán tại Việt Nam).
+
+Nhiệm vụ: Tóm tắt và xây dựng tài liệu phụ đạo, luyện tập cho các nội dung sau:${topicListStr}
+
+YÊU CẦU ĐẶC BIỆT VỀ ĐỐI TƯỢNG VÀ SỐ LƯỢNG:
+- Đối tượng học sinh trọng tâm: Học sinh [${level}]. Tổng số lượng yêu cầu: [${numQuestions} câu]. 
+- Lệnh bắt buộc: Phân bổ số lượng ${numQuestions} câu này hợp lý giữa Phần 1 và Phần 2 BÁM SÁT vào đối tượng.
+- Ghi chú thêm: [${noteText}]
+
+YÊU CẦU ĐỊNH DẠNG ĐẦU RA (BẮT BUỘC):
+- Bài tập BẮT BUỘC phải nằm trong BẢNG (Table): [Câu hỏi] | [Đáp án] | [Công thức/Gợi ý]
+- KHÔNG trình bày bài tập dưới dạng văn bản tự do.
+- KHÔNG đánh số thứ tự hoặc ghi tên câu (Tuyệt đối KHÔNG ghi "Câu 1:").
+- Cột [Đáp án]: Điền kết quả cuối, kèm GIẢI THÍCH THÔNG MINH ngắn gọn trong ngoặc (VD: x=3 (Loại do đk)).
+- Cột [Gợi ý]: Trình bày siêu ngắn gọn công thức cốt lõi.
+
+Phần 1: Phụ đạo cơ bản (Dành cho Trung bình - Yếu) -> Ưu tiên sát SGK.
+Phần 2: Thử thách Khá - Giỏi (Nâng cao & Bẫy) -> Ưu tiên bẫy, vận dụng cao.`;
+
+            } else {
+                // Logic: Ma trận đề thi (Chung cho Table, App, Anki)
+                const data = getMatrixDataString();
+                if(!data || data.length===0) { 
+                    showToast('Vui lòng điền số câu hỏi (>0) vào ma trận!'); return; 
+                }
+
+                let matrixText = "";
+                let totalC = 0;
+                let totalMC = 0, totalTF = 0, totalSA = 0;
+                
+                const isAnki = type === 'matrix_anki' || type === 'matrix_anki_mc';
+
+                data.forEach((row, i) => {
+                    const tn = parseInt(row.tn || 0);
+                    const tf = parseInt(row.tf || 0);
+                    const sa = parseInt(row.sa || 0);
+                    const rowTotal = tn + tf + sa;
+                    
+                    // Nếu là form Anki thì bỏ ghi chú MC, TF, SA đi, chỉ gộp tổng số câu của bài đó
+                    if (isAnki) {
+                        matrixText += `\n- Bài [${row.lesson}] -> Yêu cầu tạo ${rowTotal} câu hỏi. (Mức độ yêu cầu: ${row.level})`;
+                    } else {
+                        matrixText += `\n- Dòng ${i+1}: Bài [${row.lesson}] -> ${tn} câu MC; ${tf} câu TF; ${sa} câu SA. (Mức độ: ${row.level}, Hướng: ${row.type})`;
+                    }
+                    
+                    totalMC += tn;
+                    totalTF += tf;
+                    totalSA += sa;
+                    totalC += rowTotal;
+                });
+
+                if (type === 'matrix_table') {
+                    // Mẫu 1: Bảng 9 Cột
+                    promptTemplate = `MẪU PROMPT TẠO ĐỀ THI BẢNG 9 CỘT
+Vai trò: ${roleString}
+(Lưu ý: Bạn đồng thời là Chuyên gia ra đề thi Toán cấp Quốc gia, thông thạo định dạng đề thi mới năm 2025 và mã hóa LaTeX).
+
+Nhiệm vụ: 
+1. Tóm tắt siêu ngắn gọn kiến thức trọng tâm của các bài học được giao.
+2. Dựa CHÍNH XÁC vào cấu trúc ma trận dưới đây để soạn Đề Kiểm Tra / Đề Thi.
+
+MA TRẬN ĐỀ THI YÊU CẦU (Tổng số ${totalC} câu lệnh/hỏi):${matrixText}
+
+Yêu cầu về nội dung:
+1. Nội dung phải chính xác tuyệt đối về mặt kiến thức sư phạm.
+2. Bao gồm đa dạng các loại câu hỏi theo ma trận: Trắc nghiệm nhiều lựa chọn (MC), Trắc nghiệm đúng/sai (TF), và Trả lời ngắn (SA).
+3. Nếu là môn Khoa học (Toán, Lý, Hóa), hãy sử dụng mã LaTeX chuẩn và đặt trong dấu $ (Ví dụ: $E=mc^2$).
+4. Trình bày kết quả dưới dạng BẢNG (Table) gồm 9 cột chính xác như sau:
+   - Cột 1: "Câu hỏi" (Nội dung câu hỏi)
+   - Cột 2: "Loại (MC/TF/SA)" (Chỉ ghi MC, TF, hoặc SA)
+   - Cột 3: "A" (Nội dung đáp án A - đối với MC/TF)
+   - Cột 4: "B" (Nội dung đáp án B - đối với MC/TF)
+   - Cột 5: "C" (Nội dung đáp án C - đối với MC/TF)
+   - Cột 6: "D" (Nội dung đáp án D - đối với MC/TF)
+   - Cột 7: "Đáp án" (Chữ cái đáp án đúng A/B/C/D đối với MC, Nội dung đáp án đúng đối với SA hoặc "ĐSĐS" đối với câu TF)
+   - Cột 8: "Ký hiệu" (Hướng dẫn giải ngắn gọn)
+   - Cột 9: "Hình ảnh (Link)" (Để trống)
+5. Đối với câu hỏi TF (Đúng/Sai), cột 3, 4, 5, 6 là 4 mệnh đề cần xét tính đúng sai. Cột "Đáp án" ghi chuỗi 4 ký tự Đ/S (Ví dụ: ĐSĐS), cột "Ký hiệu" ghi hướng dẫn giải ngắn gọn.
+6. Đối với câu hỏi SA (Trả lời ngắn), cột 3, 4, 5, 6 để trống. Cột "Đáp án" ghi câu trả lời ngắn gọn, cột "Ký hiệu" ghi hướng dẫn giải ngắn gọn.
+
+Hãy tóm tắt các kiến thức cốt lõi và bắt đầu tạo dữ liệu bảng ngay bây giờ:`;
+                } else if (type === 'matrix_app') {
+                    // Mẫu 2: Dành cho App Trình chiếu
+                    promptTemplate = `MẪU PROMPT TẠO ĐỀ THI - APP TRÌNH CHIẾU
+Vai trò: ${roleString}
+(Lưu ý: Bạn đồng thời là Chuyên gia ra đề thi Toán cấp Quốc gia, thông thạo định dạng đề thi mới năm 2025 và mã hóa LaTeX).
+
+Nhiệm vụ: 
+1. Tóm tắt siêu ngắn gọn kiến thức trọng tâm của các bài học được giao.
+2. Dựa CHÍNH XÁC vào cấu trúc ma trận dưới đây để soạn Đề Kiểm Tra / Đề Thi.
+
+MA TRẬN ĐỀ THI YÊU CẦU (Tổng số ${totalC} câu lệnh/hỏi):${matrixText}
+
+Đề thi cần tuân thủ nghiêm ngặt cấu trúc 3 phần và định dạng hiển thị như mô tả dưới đây.
+
+Quy tắc định dạng chung:
+- Sử dụng cú pháp LaTeX chuẩn cho mọi công thức toán học (đặt trong $ cho công thức cùng dòng và $$ cho công thức đứng độc lập).
+- QUAN TRỌNG BẬC NHẤT: Bắt buộc phải sử dụng thẻ HTML <u> và </u> để gạch chân toàn bộ các đáp án đúng và phát biểu đúng.
+- Không trình bày dạng Bảng. Trình bày dưới dạng văn bản câu hỏi liên tục.
+
+Cấu trúc chi tiết của đề thi:
+Phần I. Trắc nghiệm 4 phương án (${totalMC} câu)
+- Mỗi câu có 4 phương án A, B, C, D. Chỉ có 1 phương án đúng. Phương án đúng phải được gạch chân toàn bộ bằng thẻ HTML. 
+
+Phần II. Trắc nghiệm đúng sai 4 phương án (${totalTF} câu)
+- Mỗi câu đưa ra một bài toán gốc và 4 phát biểu phụ: a), b), c), d).
+- Các phát biểu đúng phải được gạch chân toàn bộ. Các phát biểu sai giữ nguyên định dạng thường.
+
+Phần III. Trả lời ngắn (${totalSA} câu)
+- Sau phần nội dung câu hỏi, cung cấp ngay đáp án ở dòng cuối cùng theo đúng định dạng: "Đáp án: [Giá trị]".
+
+Lời giải:
+- Cuối đề thi, tạo một mục "Lời giải:" và viết hướng dẫn giải chi tiết nhưng súc tích cho toàn bộ các câu hỏi ở cả 3 phần trên.
+
+MẪU TRÌNH BÀY BẮT BUỘC (Hãy mô phỏng chính xác định dạng này, có đánh số Câu 1, Câu 2...):
+
+Phần I. Trắc nghiệm 4 phương án
+
+Câu 1: Gọi $m$ là giá trị nhỏ nhất của hàm số $y = \\frac{x^2+3}{x-1}$ trên đoạn $[2; 4]$. Khi đó
+<u>A. $m = 6$.</u>
+B. $m = -2$.
+C. $m = -3$.
+D. $m = \\frac{19}{3}$.
+
+Phần II. Trắc nghiệm đúng sai 4 phương án
+
+Câu 2: Cho hàm số $y = \\frac{2x+m}{x+1}$ ($m$ là tham số).
+a) Tập xác định của hàm số là $\\mathcal{D} = \\mathbb{R} \\setminus \\{-1\\}$.
+<u>b) Với $m=3$, hàm số đã cho có giá trị nhỏ nhất trên $[0;3]$ là $y(3)$.</u>
+c) Với $m=-2$, hàm số đã cho có giá trị lớn nhất trên $[-2;3]$ là $1$.
+<u>d) Biết rằng khi $m=m_0$ thì hàm số đã cho có giá trị nhỏ nhất trên $[0;4]$ bằng $3$. Khi đó $m_0 \\in (6;8)$.</u>
+
+Phần III. Trả lời ngắn
+
+Câu 3: Một công ty tiến hành khai thác 17 giếng dầu trong khu vực được chỉ định. Trung bình mỗi giếng dầu chiết xuất được 245 thùng dầu mỗi ngày. Công ty có thể khai thác nhiều hơn 17 giếng dầu nhưng cứ khai thác thêm một giếng thì lượng dầu mỗi giếng chiết xuất được hằng ngày sẽ giảm 9 thùng. Để giám đốc công ty có thể quyết định số giếng cần thêm cho phù hợp với tài chính, hãy chỉ ra số giếng công ty có thể khai thác thêm để sản lượng dầu chiết xuất tăng lên.
+Đáp án: 5
+
+Lời giải:
+Câu 1: Lời giải ngắn gọn câu 1
+Câu 2: Lời giải ngắn gọn câu 2
+Câu 3: Lời giải ngắn gọn câu 3
+
+Hãy tóm tắt các kiến thức cốt lõi và bắt đầu soạn đề thi ngay bây giờ:`;
+                } else if (type === 'matrix_anki') {
+                    // Mẫu 3: Dành cho Anki Flashcard
+                    promptTemplate = `MẪU PROMPT TẠO THẺ ANKI FLASHCARD
+Vai trò: ${roleString}
+
+Nhiệm vụ: 
+1. Tóm tắt siêu ngắn gọn kiến thức trọng tâm của các bài học được giao.
+2. Dựa CHÍNH XÁC vào cấu trúc ma trận dưới đây để tạo thẻ Anki Flashcard.
+
+MA TRẬN YÊU CẦU (Tổng số ${totalC} câu hỏi):${matrixText}
+
+YÊU CẦU VỀ ĐỊNH DẠNG VÀ ĐỘ DÀI (BẮT BUỘC):
+Hãy tạo một bảng gồm 3 cột: "Câu hỏi", "Đáp án" và "Gợi ý giải".
+- Cột "Câu hỏi": Tối đa 100 ký tự (Khoảng 1-2 dòng). Đảm bảo học sinh đọc lướt hiểu ngay trong 3 giây.
+- Cột "Đáp án": Tối đa 50 ký tự. Đi thẳng vào kết quả (Ví dụ: Công thức cuối cùng, hoặc 1 câu khẳng định ngắn).
+- Cột "Gợi ý giải": Tối đa 50 ký tự (Khoảng 1 dòng). Tránh tuyệt đối việc học sinh phải dùng tay cuộn (scroll) màn hình để đọc hết chữ.
+
+YÊU CẦU VỀ CHUYÊN MÔN:
+- Câu hỏi phải có tính phân loại, từ cơ bản đến nâng cao theo đúng định hướng mức độ của ma trận.
+- Các công thức phải chính xác tuyệt đối.
+- Cách đặt câu hỏi phải kích thích tư duy và giúp học sinh ghi nhớ lâu.
+
+Hãy trình bày kết quả dưới dạng bảng (Table) để tôi có thể dễ dàng copy vào Google Sheets.
+
+Hãy tóm tắt các kiến thức cốt lõi và bắt đầu tạo bảng flashcard ngay bây giờ:`;
+                } else if (type === 'matrix_anki_mc') {
+                    // Mẫu 4: Dành cho Anki Flashcard dạng Trắc Nghiệm Nhiều Lựa Chọn
+                    promptTemplate = `MẪU PROMPT TẠO THẺ ANKI TRẮC NGHIỆM
+Vai trò: ${roleString}
+
+Nhiệm vụ: 
+1. Tóm tắt siêu ngắn gọn kiến thức trọng tâm của các bài học được giao.
+2. Dựa CHÍNH XÁC vào cấu trúc ma trận dưới đây để tạo thẻ Anki Flashcard dạng trắc nghiệm.
+
+MA TRẬN YÊU CẦU (Tổng số ${totalC} câu hỏi):${matrixText}
+
+YÊU CẦU VỀ ĐỊNH DẠNG VÀ ĐỘ DÀI (BẮT BUỘC):
+Hãy tạo một bảng gồm 7 cột: "Câu hỏi", "Đáp án đúng", "Đáp án sai 1", "Đáp án sai 2", "Đáp án sai 3", "Link ảnh (nếu có)", "Giải thích (nếu có)".
+- Cột "Câu hỏi": Tối đa 100 ký tự (Khoảng 1-2 dòng). Đảm bảo học sinh đọc lướt hiểu ngay trong 3 giây.
+- Cột "Đáp án đúng" và "Đáp án sai 1, 2, 3": Tối đa 50 ký tự/cột. Đi thẳng vào kết quả.
+- Cột "Link ảnh": Để trống hoặc điền link ảnh minh họa.
+- Cột "Giải thích": Tối đa 50 ký tự (Khoảng 1 dòng). Tránh tuyệt đối việc học sinh phải dùng tay cuộn (scroll) màn hình để đọc hết chữ. Giải thích ngắn gọn tại sao đáp án đó đúng.
+
+YÊU CẦU VỀ CHUYÊN MÔN:
+- Câu hỏi phải có tính phân loại, từ cơ bản đến nâng cao.
+- Các công thức phải chính xác tuyệt đối.
+- Cách đặt câu hỏi phải kích thích tư duy và giúp học sinh ghi nhớ lâu.
+
+Hãy trình bày kết quả dưới dạng bảng để tôi có thể dễ dàng copy vào Google Sheets.
+
+Hãy tóm tắt các kiến thức cốt lõi và bắt đầu tạo bảng flashcard trắc nghiệm ngay bây giờ:`;
+                }
+            }
+
+            outputArea.value = promptTemplate;
+            outputArea.classList.add('border-emerald-500', 'ring-2', 'ring-emerald-200');
+            setTimeout(() => outputArea.classList.remove('border-emerald-500', 'ring-2', 'ring-emerald-200'), 500);
+            resetCopyButton();
+        }
+
+        // Tiện ích Toast & Copy & Lưu
+        function showToast(msg, isSuccess = false) {
+            const msgBox = document.createElement('div');
+            const bgClass = isSuccess ? 'bg-emerald-100 border-emerald-500 text-emerald-700' : 'bg-red-100 border-red-500 text-red-700';
+            msgBox.className = `fixed top-4 right-4 ${bgClass} border-l-4 p-4 rounded shadow-md transition-opacity duration-300 z-50 text-sm`;
+            msgBox.innerHTML = `<p class="font-bold">${isSuccess ? 'Thành công' : 'Thông báo'}</p><p>${msg}</p>`;
+            document.body.appendChild(msgBox);
+            setTimeout(() => msgBox.remove(), 3000);
+        }
+
+        function copyPrompt() {
+            const outputArea = document.getElementById('promptOutput');
+            if (!outputArea.value) return;
+            outputArea.select();
+            document.execCommand('copy');
+            const copyBtn = document.getElementById('copyBtn');
+            copyBtn.innerHTML = '<i class="fas fa-check mr-1.5"></i> <span>Đã chép!</span>';
+            copyBtn.className = 'text-sm bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-medium py-1.5 px-3 rounded-md transition-colors flex items-center';
+            window.getSelection().removeAllRanges();
+            setTimeout(resetCopyButton, 2000);
+        }
+
+        function resetCopyButton() {
+            const copyBtn = document.getElementById('copyBtn');
+            copyBtn.innerHTML = '<i class="far fa-copy mr-1.5"></i> <span>Sao chép</span>';
+            copyBtn.className = 'text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-1.5 px-3 rounded-md transition-colors flex items-center';
+        }
+
+        document.addEventListener('DOMContentLoaded', renderSavedPrompts);
+
+        function savePrompt() {
+            const outputArea = document.getElementById('promptOutput');
+            if (!outputArea.value) { showToast('Không có nội dung để lưu!'); return; }
+
+            const checkboxes = document.querySelectorAll('.topic-checkbox:checked');
+            
+            // Đặt tiền tố dựa trên loại Prompt vừa sinh
+            let prefix = "";
+            if (lastGeneratedType === 'matrix_table') prefix = "[Bảng 9 Cột] ";
+            else if (lastGeneratedType === 'matrix_app') prefix = "[App Trình Chiếu] ";
+            else if (lastGeneratedType === 'matrix_anki') prefix = "[Anki Flash] ";
+            else if (lastGeneratedType === 'matrix_anki_mc') prefix = "[Anki Trắc Nghiệm] ";
+            else prefix = "[Phụ Đạo] ";
+
+            let promptName = prefix + "Tuỳ chỉnh";
+            
+            if (checkboxes.length > 0) {
+                const names = Array.from(checkboxes).map(cb => cb.value);
+                promptName = prefix + (names.length <= 2 ? names.join(', ') : `${names[0]}, ${names[1]} và ${names.length - 2} bài khác`);
+            }
+
+            const newPrompt = { id: Date.now().toString(), name: promptName, content: outputArea.value, date: new Date().toLocaleString('vi-VN') };
+            let saved = JSON.parse(localStorage.getItem('saved_math_prompts') || '[]');
+            saved.unshift(newPrompt);
+            localStorage.setItem('saved_math_prompts', JSON.stringify(saved));
+            
+            renderSavedPrompts();
+            showToast('Đã lưu cấu hình thành công!', true);
+        }
+
+        function renderSavedPrompts() {
+            const container = document.getElementById('savedPromptsList');
+            if (!container) return;
+            let saved = JSON.parse(localStorage.getItem('saved_math_prompts') || '[]');
+            if (saved.length === 0) {
+                container.innerHTML = '<div class="text-sm text-slate-400 italic text-center p-4 bg-slate-50 rounded-lg border border-dashed border-slate-300">Chưa có dữ liệu lưu trữ.</div>';
+                return;
+            }
+            container.innerHTML = saved.map(item => `
+                <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg hover:border-blue-300 transition-all group">
+                    <div class="flex-1 min-w-0 pr-3 cursor-pointer" onclick="loadSavedPrompt('${item.id}')">
+                        <p class="text-[13px] font-medium text-slate-800 truncate group-hover:text-blue-600">${item.name}</p>
+                        <p class="text-[10px] text-slate-500 mt-0.5"><i class="far fa-clock mr-1"></i> ${item.date}</p>
+                    </div>
+                    <div class="flex space-x-1 shrink-0">
+                        <button onclick="loadSavedPrompt('${item.id}')" class="text-blue-500 hover:bg-blue-100 w-7 h-7 flex items-center justify-center rounded transition-colors"><i class="fas fa-upload text-xs"></i></button>
+                        <button onclick="deleteSavedPrompt('${item.id}')" class="text-red-400 hover:bg-red-100 w-7 h-7 flex items-center justify-center rounded transition-colors"><i class="fas fa-trash text-xs"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadSavedPrompt(id) {
+            let saved = JSON.parse(localStorage.getItem('saved_math_prompts') || '[]');
+            const item = saved.find(p => p.id === id);
+            if (item) {
+                document.getElementById('promptOutput').value = item.content;
+                showToast('Đã nạp lại dữ liệu thành công!', true);
+            }
+        }
+
+        function deleteSavedPrompt(id) {
+            let saved = JSON.parse(localStorage.getItem('saved_math_prompts') || '[]');
+            localStorage.setItem('saved_math_prompts', JSON.stringify(saved.filter(p => p.id !== id)));
+            renderSavedPrompts();
+        }
+    </script>
+</body>
+</html>
