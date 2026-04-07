@@ -138,8 +138,10 @@
                     <div id="matrix-settings" class="hidden flex flex-col gap-2">
                         <div class="flex justify-between items-center mb-1 mt-2">
                             <label class="block text-sm font-medium text-slate-700">4. Thiết lập Ma trận Đề thi</label>
-                            <div class="space-x-1 flex">
-                                <button onclick="exportMatrixExcel()" class="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200 transition-colors" title="Xuất Excel (.csv)"><i class="fas fa-file-excel mr-1"></i> Xuất Excel</button>
+                            <div class="space-x-1 flex items-center">
+                                <input type="file" id="importMatrixFile" accept=".xls,.json" class="hidden" onchange="handleImportMatrix(event)">
+                                <button onclick="document.getElementById('importMatrixFile').click()" class="text-[11px] bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors" title="Tải lên Ma trận (từ file Excel đã xuất)"><i class="fas fa-upload mr-1"></i> Tải lên</button>
+                                <button onclick="exportMatrixExcel()" class="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200 transition-colors" title="Xuất Excel (.xls)"><i class="fas fa-file-excel mr-1"></i> Xuất Excel</button>
                                 <button onclick="exportMatrixText()" class="text-[11px] bg-slate-200 text-slate-700 px-2 py-1 rounded hover:bg-slate-300 transition-colors" title="Tải file Text (.txt)"><i class="fas fa-file-alt mr-1"></i> Xuất Text</button>
                             </div>
                         </div>
@@ -520,7 +522,7 @@
             document.getElementById('totalSA').textContent = t_sa;
         }
 
-        // Xuất file
+        // Xuất/Nhập file
         function getMatrixDataString() {
             let result = [];
             matrixRows.forEach(row => {
@@ -532,6 +534,85 @@
                 }
             });
             return result;
+        }
+
+        function detectClassByLessons(lessons) {
+            if (!lessons || lessons.length === 0) return null;
+            const firstLesson = lessons[0];
+            for (const classKey in topicData) {
+                for (const chapterObj of topicData[classKey]) {
+                    if (chapterObj.lessons.includes(firstLesson)) {
+                        return classKey;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function handleImportMatrix(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    let importedRows = [];
+
+                    // Try parse as HTML to extract embedded JSON state
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(content, 'text/html');
+                    const dataScript = doc.getElementById('matrix-data');
+
+                    if (dataScript) {
+                        importedRows = JSON.parse(dataScript.textContent);
+                    } else {
+                        // Fallback JSON parsing
+                        importedRows = JSON.parse(content);
+                    }
+
+                    if (Array.isArray(importedRows) && importedRows.length > 0) {
+                        matrixRows = importedRows;
+
+                        // Detect class and switch radio button
+                        const lessons = [...new Set(matrixRows.map(r => r.lesson))];
+                        const detectedClass = detectClassByLessons(lessons);
+                        if (detectedClass) {
+                            const radio = document.querySelector(`input[name="classSelect"][value="${detectedClass}"]`);
+                            if (radio && !radio.checked) {
+                                radio.checked = true;
+                                renderTopics(); // render DOM checklist first
+                            }
+                        }
+
+                        // Check checkboxes
+                        document.querySelectorAll('.topic-checkbox').forEach(cb => {
+                            cb.checked = lessons.includes(cb.value);
+                        });
+
+                        // Expand accordions for checked items
+                        document.querySelectorAll('.topic-checkbox:checked').forEach(cb => {
+                            const lessonList = cb.closest('div.hidden') || cb.parentElement.parentElement;
+                            if (lessonList && lessonList.classList.contains('hidden')) {
+                                lessonList.classList.remove('hidden');
+                                const header = lessonList.previousElementSibling;
+                                if (header && header.querySelector('i')) header.querySelector('i').classList.add('rotate-180');
+                            }
+                        });
+
+                        updateSelectedTopicsText();
+                        renderMatrixTable();
+                        showToast('Đã tải lên và khôi phục ma trận thành công!', true);
+                    } else {
+                        showToast('Không tìm thấy dữ liệu ma trận hợp lệ trong file này.');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast('File không hợp lệ hoặc bị lỗi định dạng.');
+                }
+                event.target.value = ''; // Reset file input
+            };
+            reader.readAsText(file);
         }
 
         // Hàm hỗ trợ tự động tìm tên Chương dựa vào tên Bài học
@@ -645,6 +726,9 @@
             let pct_p2 = sum_score > 0 ? (((sum_pii_nb + sum_pii_th + sum_pii_vd) * 1.0) / sum_score * 100).toFixed(0) + '%' : '0%';
             let pct_p3 = sum_score > 0 ? (((sum_piii_nb + sum_piii_th + sum_piii_vd) * 0.5) / sum_score * 100).toFixed(0) + '%' : '0%';
 
+            // Encode matrix state in HTML as JSON to restore later
+            let jsonState = JSON.stringify(matrixRows).replace(/</g, '\\u003c');
+
             let html = `
             <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
             <head>
@@ -712,6 +796,7 @@
                         <td>100%</td>
                     </tr>
                 </table>
+                <script id="matrix-data" type="application/json">${jsonState}<\/script>
             </body>
             </html>
             `;
@@ -888,16 +973,16 @@ MA TRẬN ĐỀ THI YÊU CẦU (Tổng số ${totalC} câu lệnh/hỏi):${matri
 
 Quy tắc định dạng chung:
 - Sử dụng cú pháp LaTeX chuẩn cho mọi công thức toán học (đặt trong $ cho công thức cùng dòng và $$ cho công thức đứng độc lập).
-- QUAN TRỌNG BẬC NHẤT: Bắt buộc phải sử dụng thẻ HTML <u> và </u> để gạch chân toàn bộ các đáp án đúng và phát biểu đúng.
+- QUAN TRỌNG BẬC NHẤT: Bắt buộc phải sử dụng thẻ HTML <u> và </u> để gạch chân CHỈ CHỮ CÁI của đáp án đúng hoặc phát biểu đúng (Ví dụ: <u>A</u>. hoặc <u>b</u>) ). Tuyệt đối không gạch chân toàn bộ nội dung câu.
 - Không trình bày dạng Bảng. Trình bày dưới dạng văn bản câu hỏi liên tục.
 
 Cấu trúc chi tiết của đề thi:
 Phần I. Trắc nghiệm 4 phương án (${totalMC} câu)
-- Mỗi câu có 4 phương án A, B, C, D. Chỉ có 1 phương án đúng. Phương án đúng phải được gạch chân toàn bộ bằng thẻ HTML. 
+- Mỗi câu có 4 phương án A, B, C, D. Chỉ có 1 phương án đúng. Chữ cái của phương án đúng phải được gạch chân bằng thẻ HTML. 
 
 Phần II. Trắc nghiệm đúng sai 4 phương án (${totalTF} câu)
 - Mỗi câu đưa ra một bài toán gốc và 4 phát biểu phụ: a), b), c), d).
-- Các phát biểu đúng phải được gạch chân toàn bộ. Các phát biểu sai giữ nguyên định dạng thường.
+- Chữ cái của các phát biểu đúng phải được gạch chân. Các phát biểu sai giữ nguyên định dạng thường.
 
 Phần III. Trả lời ngắn (${totalSA} câu)
 - Sau phần nội dung câu hỏi, cung cấp ngay đáp án ở dòng cuối cùng theo đúng định dạng: "Đáp án: [Giá trị]".
@@ -910,7 +995,7 @@ MẪU TRÌNH BÀY BẮT BUỘC (Hãy mô phỏng chính xác định dạng này
 Phần I. Trắc nghiệm 4 phương án
 
 Câu 1: Gọi $m$ là giá trị nhỏ nhất của hàm số $y = \\frac{x^2+3}{x-1}$ trên đoạn $[2; 4]$. Khi đó
-<u>A. $m = 6$.</u>
+<u>A</u>. $m = 6$.
 B. $m = -2$.
 C. $m = -3$.
 D. $m = \\frac{19}{3}$.
@@ -919,9 +1004,9 @@ Phần II. Trắc nghiệm đúng sai 4 phương án
 
 Câu 2: Cho hàm số $y = \\frac{2x+m}{x+1}$ ($m$ là tham số).
 a) Tập xác định của hàm số là $\\mathcal{D} = \\mathbb{R} \\setminus \\{-1\\}$.
-<u>b) Với $m=3$, hàm số đã cho có giá trị nhỏ nhất trên $[0;3]$ là $y(3)$.</u>
+<u>b</u>) Với $m=3$, hàm số đã cho có giá trị nhỏ nhất trên $[0;3]$ là $y(3)$.
 c) Với $m=-2$, hàm số đã cho có giá trị lớn nhất trên $[-2;3]$ là $1$.
-<u>d) Biết rằng khi $m=m_0$ thì hàm số đã cho có giá trị nhỏ nhất trên $[0;4]$ bằng $3$. Khi đó $m_0 \\in (6;8)$.</u>
+<u>d</u>) Biết rằng khi $m=m_0$ thì hàm số đã cho có giá trị nhỏ nhất trên $[0;4]$ bằng $3$. Khi đó $m_0 \\in (6;8)$.
 
 Phần III. Trả lời ngắn
 
