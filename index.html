@@ -69,11 +69,15 @@
                         <h2 class="text-lg font-semibold flex items-center text-slate-800">
                             <i class="fas fa-edit mr-2 text-blue-500"></i> Thông tin đầu vào
                         </h2>
-                        <!-- Nút Tải lên (Luôn hiện để tiện dụng) -->
-                        <div>
+                        <div class="flex gap-2">
+                            <!-- Nút Ma trận Chuẩn THPT -->
+                            <button onclick="loadTHPTPreset()" class="text-[11px] md:text-xs bg-orange-50 text-orange-700 px-3 py-1.5 rounded-lg hover:bg-orange-100 transition-colors font-semibold flex items-center border border-orange-200" title="Tự động lập cấu trúc Ma trận thi Tốt nghiệp THPT 2026">
+                                <i class="fas fa-bolt text-amber-500 mr-1.5"></i> Ma Trận THPT QG
+                            </button>
+                            <!-- Nút Tải lên -->
                             <input type="file" id="importMatrixFile" accept=".xls,.json" class="hidden" onchange="handleImportMatrix(event)">
-                            <button onclick="document.getElementById('importMatrixFile').click()" class="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors font-semibold flex items-center border border-blue-200" title="Tải lên Ma trận từ file Excel đã xuất">
-                                <i class="fas fa-upload mr-1.5"></i> Tải Ma Trận Khôi Phục
+                            <button onclick="document.getElementById('importMatrixFile').click()" class="text-[11px] md:text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors font-semibold flex items-center border border-blue-200" title="Tải lên Ma trận từ file Excel đã xuất">
+                                <i class="fas fa-upload mr-1.5"></i> Tải Khôi Phục
                             </button>
                         </div>
                     </div>
@@ -109,7 +113,7 @@
                         </div>
                     </div>
 
-                    <!-- Bước 2: Chọn Bài (Ẩn cho đến khi chọn Lớp) -->
+                    <!-- Bước 2: Chọn Bài -->
                     <div id="step2-container" class="hidden fade-in">
                         <label class="block text-sm font-medium text-slate-700 mb-2">
                             2. Chọn nội dung (Tích chọn bài học) <span class="text-red-500">*</span>
@@ -119,7 +123,7 @@
                         </div>
                     </div>
 
-                    <!-- VÙNG ẨN THÔNG MINH (Chỉ hiện khi đã chọn ít nhất 1 bài học) -->
+                    <!-- VÙNG ẨN THÔNG MINH -->
                     <div id="main-action-container" class="hidden flex-col gap-6 fade-in pt-2 border-t border-slate-100">
                         
                         <!-- Bước 3: Văn bản bài học -->
@@ -163,7 +167,6 @@
                                 </div>
                             </div>
                             
-                            <!-- Bảng ma trận: Gỡ bỏ max-h để hiển thị toàn bộ, cuộn ngang nếu màn hình nhỏ -->
                             <div class="border border-slate-300 rounded-lg shadow-sm bg-white overflow-hidden overflow-x-auto">
                                 <table class="w-full text-[11px] text-left border-collapse min-w-[600px]">
                                     <thead class="bg-slate-100 sticky top-0 shadow-sm z-10">
@@ -178,7 +181,6 @@
                                         </tr>
                                     </thead>
                                     <tbody id="matrixBody" class="divide-y divide-slate-100">
-                                        <!-- Dữ liệu render động -->
                                     </tbody>
                                     <tfoot class="bg-slate-50 sticky bottom-0 border-t-2 border-slate-300 font-semibold" id="matrixFooter" style="display: none;">
                                         <tr>
@@ -220,12 +222,10 @@
 
                         <!-- KHU VỰC NÚT SINH PROMPT -->
                         <div id="action-buttons" class="space-y-2">
-                            <!-- Nút Phụ đạo -->
                             <button onclick="generatePrompt('practice')" id="btn-practice-gen" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg shadow-sm flex items-center justify-center transition-colors">
                                 <i class="fas fa-magic mr-2"></i> Sinh Prompt Phụ Đạo
                             </button>
                             
-                            <!-- Nhóm Nút Ma trận -->
                             <div id="matrix-action-buttons" class="hidden grid grid-cols-2 lg:grid-cols-4 gap-2">
                                 <button onclick="generatePrompt('matrix_table')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 px-2 text-[13px] rounded-lg shadow-sm flex items-center justify-center transition-colors">
                                     <i class="fas fa-table mr-2"></i> Prompt Bảng 9 Cột
@@ -242,7 +242,7 @@
                             </div>
                         </div>
 
-                    </div> <!-- End Main Action Container -->
+                    </div>
                 </div>
 
                 <!-- Block: Prompt Đã Lưu -->
@@ -286,9 +286,9 @@
     <script>
         let currentMode = 'practice'; // 'practice' or 'matrix'
         let lastGeneratedType = 'practice'; // Track which button was clicked for saving
-        let matrixRows = []; // Cấu trúc mới hỗ trợ nhiều dòng cho 1 bài học: [{ id, lesson, tn, tf, sa, level, type }]
+        let matrixRows = []; 
+        let globalSelectedLessons = new Set(); // Hỗ trợ lưu trữ trạng thái các bài học trên nhiều Lớp khác nhau
 
-        // Dữ liệu chuyên đề được tách nhỏ thành từng chương và từng bài
         const topicData = {
             "10": [
                 { chapter: "Chương 1: Mệnh đề và tập hợp", lessons: ["Khái niệm mệnh đề", "Các tập hợp số", "Các phép toán trên tập hợp"] },
@@ -319,7 +319,8 @@
                 { chapter: "Chương 3: Thống kê (Mức độ phân tán)", lessons: ["Khoảng biến thiên, tứ phân vị", "Phương sai, độ lệch chuẩn"] },
                 { chapter: "Chương 4: Nguyên hàm - Tích phân", lessons: ["Nguyên hàm", "Tích phân", "Ứng dụng hình học"] },
                 { chapter: "Chương 5: Hình Oxyz", lessons: ["PT mặt phẳng", "PT đường thẳng", "PT mặt cầu"] },
-                { chapter: "Chương 6: Xác suất có điều kiện", lessons: ["Xác suất có điều kiện", "Công thức Bayes"] }
+                { chapter: "Chương 6: Xác suất có điều kiện", lessons: ["Xác suất có điều kiện", "Công thức Bayes"] },
+                { chapter: "Chương 7: Lý thuyết đồ thị (Mới)", lessons: ["Khái niệm đồ thị", "Đường đi Euler và Hamilton", "Bài toán tìm đường"] }
             ]
         };
 
@@ -358,7 +359,6 @@
             const container = document.getElementById('topicContainer');
             if (!selectedClass) return;
 
-            // Hiển thị khung Chọn Bài khi đã chọn Lớp
             document.getElementById('step2-container').classList.remove('hidden');
 
             const chapters = topicData[selectedClass];
@@ -381,10 +381,26 @@
                 chapterObj.lessons.forEach((lesson) => {
                     const label = document.createElement('label');
                     label.className = "flex items-start space-x-2 p-1.5 hover:bg-white rounded-md cursor-pointer transition-all border border-transparent hover:border-slate-300";
-                    label.innerHTML = `
-                        <input type="checkbox" data-chapter="${chapterObj.chapter}" value="${lesson}" class="mt-0.5 w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 topic-checkbox" onchange="handleSelectionChange()">
-                        <span class="text-[13px] text-slate-700 leading-snug">${lesson}</span>
-                    `;
+                    
+                    const cb = document.createElement('input');
+                    cb.type = "checkbox";
+                    cb.value = lesson;
+                    cb.className = "mt-0.5 w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 topic-checkbox mr-2";
+                    cb.checked = globalSelectedLessons.has(lesson);
+                    
+                    cb.addEventListener('change', (e) => {
+                        if (e.target.checked) globalSelectedLessons.add(lesson);
+                        else globalSelectedLessons.delete(lesson);
+                        handleSelectionChange();
+                    });
+
+                    label.appendChild(cb);
+                    
+                    const span = document.createElement('span');
+                    span.className = "text-[13px] text-slate-700 leading-snug";
+                    span.textContent = lesson;
+                    label.appendChild(span);
+                    
                     lessonList.appendChild(label);
                 });
 
@@ -398,23 +414,41 @@
                 container.appendChild(chapterDiv);
             });
 
-            // Gọi hàm cập nhật để ẩn các chức năng bên dưới khi vừa đổi Lớp (chưa tích chọn bài nào)
+            document.querySelectorAll('.topic-checkbox:checked').forEach(cb => {
+                const lessonList = cb.closest('div.hidden');
+                if (lessonList) {
+                    lessonList.classList.remove('hidden');
+                    const icon = lessonList.previousElementSibling.querySelector('i');
+                    if (icon) icon.classList.add('rotate-180');
+                }
+            });
+
             handleSelectionChange();
         }
 
         function handleSelectionChange() {
-            updateSelectedTopicsText();
             syncMatrixDataWithSelection();
+            updateSelectedTopicsText();
             renderMatrixTable();
         }
 
+        function getFullChapterByLesson(lessonName) {
+            for (const classKey in topicData) {
+                for (const chapterObj of topicData[classKey]) {
+                    if (chapterObj.lessons.includes(lessonName)) {
+                        return `[Lớp ${classKey}] ${chapterObj.chapter}`;
+                    }
+                }
+            }
+            return "Chủ đề khác";
+        }
+
         function updateSelectedTopicsText() {
-            const checkboxes = document.querySelectorAll('.topic-checkbox:checked');
             const selectedByChapter = {};
-            checkboxes.forEach(cb => {
-                const chapter = cb.dataset.chapter;
+            globalSelectedLessons.forEach(lesson => {
+                const chapter = getFullChapterByLesson(lesson);
                 if (!selectedByChapter[chapter]) selectedByChapter[chapter] = [];
-                selectedByChapter[chapter].push(cb.value);
+                selectedByChapter[chapter].push(lesson);
             });
 
             let topicListStr = "";
@@ -424,9 +458,8 @@
             }
             document.getElementById('selectedTopicsText').value = topicListStr;
             
-            // XỬ LÝ ẨN/HIỆN THÔNG MINH
             const actionContainer = document.getElementById('main-action-container');
-            if(topicListStr !== "") {
+            if(globalSelectedLessons.size > 0) {
                 actionContainer.classList.remove('hidden');
                 actionContainer.classList.add('flex');
             } else {
@@ -435,36 +468,50 @@
             }
         }
 
-        // --- HỆ THỐNG MA TRẬN ĐỀ THI (HỖ TRỢ NHIỀU DÒNG) ---
+        // --- HỆ THỐNG MA TRẬN ĐỀ THI ---
         function syncMatrixDataWithSelection() {
             let newMatrixRows = [];
-            const checkboxes = Array.from(document.querySelectorAll('.topic-checkbox:checked')).map(cb => cb.value);
-            
-            checkboxes.forEach(lesson => {
-                // Giữ lại các dòng đã cấu hình cho bài học này
-                const existingRows = matrixRows.filter(r => r.lesson === lesson);
-                if (existingRows.length > 0) {
-                    newMatrixRows.push(...existingRows);
-                } else {
-                    // Nếu là bài học mới tích chọn, tạo 1 dòng mặc định
-                    newMatrixRows.push({ 
-                        id: 'id_' + Date.now() + Math.random().toString(36).substr(2, 5), 
-                        lesson: lesson, tn: 0, tf: 0, sa: 0, 
-                        level: 'Nhận biết', type: 'Toán Thuần túy' 
-                    });
+            const renderedLessons = Array.from(document.querySelectorAll('.topic-checkbox')).map(cb => cb.value);
+
+            matrixRows.forEach(row => {
+                if (!renderedLessons.includes(row.lesson) && globalSelectedLessons.has(row.lesson)) {
+                    newMatrixRows.push(row);
                 }
             });
+
+            globalSelectedLessons.forEach(lesson => {
+                if (renderedLessons.includes(lesson)) {
+                    const existingRows = matrixRows.filter(r => r.lesson === lesson);
+                    if (existingRows.length > 0) {
+                        newMatrixRows.push(...existingRows);
+                    } else {
+                        newMatrixRows.push({ 
+                            id: 'id_' + Date.now() + Math.random().toString(36).substr(2, 5), 
+                            lesson: lesson, tn: 0, tf: 0, sa: 0, 
+                            level: 'Nhận biết', type: 'Toán Thuần túy' 
+                        });
+                    }
+                }
+            });
+
+            globalSelectedLessons.forEach(lesson => {
+               if(!newMatrixRows.some(r => r.lesson === lesson)){
+                    const existingRows = matrixRows.filter(r => r.lesson === lesson);
+                    if (existingRows.length > 0) newMatrixRows.push(...existingRows);
+                    else newMatrixRows.push({ id: 'id_' + Date.now() + Math.random().toString(36).substr(2, 5), lesson: lesson, tn: 0, tf: 0, sa: 0, level: 'Nhận biết', type: 'Toán Thuần túy' });
+               }
+            });
+
             matrixRows = newMatrixRows;
         }
 
         function addMatrixRow(lesson, insertAfterId) {
             const index = matrixRows.findIndex(r => r.id === insertAfterId);
             if (index !== -1) {
-                // Chèn thêm 1 dòng ngay sau dòng hiện tại cho cùng bài học
                 matrixRows.splice(index + 1, 0, { 
                     id: 'id_' + Date.now() + Math.random().toString(36).substr(2, 5), 
                     lesson: lesson, tn: 0, tf: 0, sa: 0, 
-                    level: 'Thông hiểu', // Đổi mức độ mặc định cho dòng mới để tránh trùng
+                    level: 'Thông hiểu', 
                     type: 'Toán Thuần túy' 
                 });
                 renderMatrixTable();
@@ -496,7 +543,6 @@
             }
 
             let html = '';
-            // Lấy danh sách các bài học duy nhất để nhóm theo Rowspan
             const lessons = [...new Set(matrixRows.map(r => r.lesson))];
             
             lessons.forEach(lesson => {
@@ -505,7 +551,6 @@
                     const isBorderBottom = index === rowsForLesson.length - 1 ? 'border-b-2 border-slate-200' : 'border-b border-slate-100 border-dashed';
                     html += `<tr class="hover:bg-blue-50 transition-colors">`;
                     
-                    // Gộp cột Tên bài học (Rowspan)
                     if (index === 0) {
                         html += `<td rowspan="${rowsForLesson.length}" class="px-1 py-2 border-b-2 border-r border-slate-200 text-slate-800 font-medium align-middle max-w-[120px] break-words bg-white" title="${lesson}">${lesson}</td>`;
                     }
@@ -555,6 +600,57 @@
             document.getElementById('totalSA').textContent = t_sa;
         }
 
+        // Tạo preset Ma trận THPT Quốc gia 2026
+        function loadTHPTPreset() {
+            const thptMix = [
+                // Phần 1: 12 câu TN (12 Lớp 11 & 12)
+                { lesson: "Hàm số lượng giác", tn: 1, tf: 0, sa: 0, level: 'Nhận biết', type: 'Toán Thuần túy' },
+                { lesson: "Cấp số nhân", tn: 1, tf: 0, sa: 0, level: 'Nhận biết', type: 'Toán Thuần túy' },
+                { lesson: "PT, BPT mũ lôgarit", tn: 1, tf: 0, sa: 0, level: 'Nhận biết', type: 'Toán Thuần túy' },
+                { lesson: "Tính đơn điệu, cực trị", tn: 2, tf: 0, sa: 0, level: 'Thông hiểu', type: 'Toán Thuần túy' },
+                { lesson: "Max, Min", tn: 1, tf: 0, sa: 0, level: 'Nhận biết', type: 'Toán Thuần túy' },
+                { lesson: "Tích phân", tn: 1, tf: 0, sa: 0, level: 'Nhận biết', type: 'Toán Thuần túy' },
+                { lesson: "Khoảng cách, Góc nhị diện", tn: 1, tf: 0, sa: 0, level: 'Thông hiểu', type: 'Toán Thuần túy' },
+                { lesson: "Biểu thức toạ độ", tn: 2, tf: 0, sa: 0, level: 'Thông hiểu', type: 'Toán Thuần túy' },
+                { lesson: "Phương sai, độ lệch chuẩn", tn: 1, tf: 0, sa: 0, level: 'Thông hiểu', type: 'Toán Thực tế' },
+                { lesson: "Xác suất của biến cố", tn: 1, tf: 0, sa: 0, level: 'Thông hiểu', type: 'Kết hợp' },
+                // Phần 2: 4 câu ĐS
+                { lesson: "Tiệm cận", tn: 0, tf: 1, sa: 0, level: 'Thông hiểu', type: 'Toán Thuần túy' },
+                { lesson: "Ứng dụng hình học", tn: 0, tf: 1, sa: 0, level: 'Vận dụng', type: 'Kết hợp' },
+                { lesson: "Vectơ không gian", tn: 0, tf: 1, sa: 0, level: 'Thông hiểu', type: 'Toán Thuần túy' },
+                { lesson: "PT mặt phẳng", tn: 0, tf: 1, sa: 0, level: 'Vận dụng', type: 'Toán Thuần túy' },
+                // Phần 3: 6 câu TLN
+                { lesson: "Hệ bất PT bậc nhất hai ẩn", tn: 0, tf: 0, sa: 1, level: 'Vận dụng', type: 'Toán Thực tế' },
+                { lesson: "Đường đi Euler và Hamilton", tn: 0, tf: 0, sa: 1, level: 'Vận dụng', type: 'Toán Thực tế' },
+                { lesson: "Khảo sát vẽ đồ thị", tn: 0, tf: 0, sa: 1, level: 'Vận dụng', type: 'Kết hợp' },
+                { lesson: "Hai MP vuông góc", tn: 0, tf: 0, sa: 1, level: 'Vận dụng', type: 'Toán Thuần túy' },
+                { lesson: "PT mặt cầu", tn: 0, tf: 0, sa: 1, level: 'Vận dụng', type: 'Kết hợp' },
+                { lesson: "Khoảng biến thiên, tứ phân vị", tn: 0, tf: 0, sa: 1, level: 'Vận dụng', type: 'Toán Thực tế' }
+            ];
+
+            globalSelectedLessons.clear();
+            matrixRows = [];
+
+            thptMix.forEach(item => {
+                globalSelectedLessons.add(item.lesson);
+                matrixRows.push({
+                    id: 'id_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                    lesson: item.lesson, tn: item.tn, tf: item.tf, sa: item.sa, level: item.level, type: item.type
+                });
+            });
+
+            // Ưu tiên hiển thị giao diện của Lớp 12 để theo dõi
+            const radio12 = document.querySelector('input[name="classSelect"][value="12"]');
+            if(radio12) radio12.checked = true;
+            renderTopics(); 
+            
+            updateSelectedTopicsText();
+            renderMatrixTable();
+            switchMode('matrix');
+
+            showToast('Đã tải Ma trận chuẩn TN THPT 2026 (12 TN, 4 ĐS, 6 TLN)!', true);
+        }
+
         // Xuất/Nhập file
         function getMatrixDataString() {
             let result = [];
@@ -592,51 +688,37 @@
                     const content = e.target.result;
                     let importedRows = [];
 
-                    // Try parse as HTML to extract embedded JSON state
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(content, 'text/html');
-                    const dataScript = doc.getElementById('matrix-data');
+                    if (content.trim().startsWith('<')) {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(content, 'text/html');
+                        const dataScript = doc.getElementById('matrix-data');
 
-                    if (dataScript) {
-                        importedRows = JSON.parse(dataScript.textContent);
+                        if (dataScript) {
+                            importedRows = JSON.parse(dataScript.textContent);
+                        } else {
+                            throw new Error("Không tìm thấy dữ liệu ma trận trong file.");
+                        }
                     } else {
-                        // Fallback JSON parsing
                         importedRows = JSON.parse(content);
                     }
 
                     if (Array.isArray(importedRows) && importedRows.length > 0) {
                         matrixRows = importedRows;
+                        globalSelectedLessons.clear();
+                        matrixRows.forEach(r => globalSelectedLessons.add(r.lesson));
 
-                        // Detect class and switch radio button
-                        const lessons = [...new Set(matrixRows.map(r => r.lesson))];
+                        const lessons = Array.from(globalSelectedLessons);
                         const detectedClass = detectClassByLessons(lessons);
                         if (detectedClass) {
                             const radio = document.querySelector(`input[name="classSelect"][value="${detectedClass}"]`);
-                            if (radio && !radio.checked) {
-                                radio.checked = true;
-                                document.getElementById('step2-container').classList.remove('hidden');
-                                renderTopics(); // render DOM checklist first
-                            }
+                            if (radio) radio.checked = true;
                         }
-
-                        // Check checkboxes
-                        document.querySelectorAll('.topic-checkbox').forEach(cb => {
-                            cb.checked = lessons.includes(cb.value);
-                        });
-
-                        // Expand accordions for checked items
-                        document.querySelectorAll('.topic-checkbox:checked').forEach(cb => {
-                            const lessonList = cb.closest('div.hidden') || cb.parentElement.parentElement;
-                            if (lessonList && lessonList.classList.contains('hidden')) {
-                                lessonList.classList.remove('hidden');
-                                const header = lessonList.previousElementSibling;
-                                if (header && header.querySelector('i')) header.querySelector('i').classList.add('rotate-180');
-                            }
-                        });
-
+                        
+                        document.getElementById('step2-container').classList.remove('hidden');
+                        renderTopics(); 
                         updateSelectedTopicsText();
                         renderMatrixTable();
-                        switchMode('matrix'); // Tự động chuyển sang Tab Ma trận sau khi tải
+                        switchMode('matrix'); 
                         showToast('Đã tải lên và khôi phục ma trận thành công!', true);
                     } else {
                         showToast('Không tìm thấy dữ liệu ma trận hợp lệ trong file này.');
@@ -645,12 +727,11 @@
                     console.error(err);
                     showToast('File không hợp lệ hoặc bị lỗi định dạng.');
                 }
-                event.target.value = ''; // Reset file input
+                event.target.value = ''; 
             };
             reader.readAsText(file);
         }
 
-        // Hàm hỗ trợ tự động tìm tên Chương dựa vào tên Bài học
         function getChapterByLesson(lessonName) {
             for (const classKey in topicData) {
                 for (const chapterObj of topicData[classKey]) {
@@ -669,7 +750,6 @@
                 return; 
             }
 
-            // 1. Gom nhóm dữ liệu
             const aggregated = {};
             let tt = 1;
             matrixRows.forEach(row => {
@@ -688,7 +768,6 @@
                 const tf = parseInt(row.tf) || 0;
                 const sa = parseInt(row.sa) || 0;
 
-                // Phân bổ số câu vào đúng cột dựa theo mức độ nhận thức
                 if (row.level.includes('Nhận biết')) {
                     data.pi_nb += tn; data.pii_nb += tf; data.piii_nb += sa;
                 } else if (row.level.includes('Thông hiểu') || row.level.includes('Trộn đều')) {
@@ -698,7 +777,6 @@
                 }
             });
 
-            // 2. Pass 1: Tính tổng toàn bộ (câu và điểm)
             let sum_pi_nb = 0, sum_pi_th = 0, sum_pi_vd = 0;
             let sum_pii_nb = 0, sum_pii_th = 0, sum_pii_vd = 0;
             let sum_piii_nb = 0, sum_piii_th = 0, sum_piii_vd = 0;
@@ -718,7 +796,6 @@
                 sum_score += (p1_total * 0.25) + (p2_total * 1.0) + (p3_total * 0.5);
             }
 
-            // 3. Pass 2: Tạo mã HTML xuất Excel
             let rowsHtml = '';
             for (const key in aggregated) {
                 const d = aggregated[key];
@@ -729,13 +806,11 @@
 
                 sum_nb += row_nb; sum_th += row_th; sum_vd += row_vd;
 
-                // Tính điểm hàng: TN (0.25), Đ/S (1.0), TLN (0.5)
                 const p1_total = d.pi_nb + d.pi_th + d.pi_vd;
                 const p2_total = d.pii_nb + d.pii_th + d.pii_vd;
                 const p3_total = d.piii_nb + d.piii_th + d.piii_vd;
                 const row_score = (p1_total * 0.25) + (p2_total * 1.0) + (p3_total * 0.5);
 
-                // Tính tỉ lệ phần trăm dựa trên điểm số
                 const percentage = sum_score > 0 ? ((row_score / sum_score) * 100).toFixed(1) : 0;
                 const displayPercentage = percentage.toString().replace('.0', '') + '%';
 
@@ -752,7 +827,6 @@
                 </tr>`;
             }
 
-            // Tính toán Điểm & % cho các ô Tổng
             let sum_nb_score = (sum_pi_nb * 0.25) + (sum_pii_nb * 1.0) + (sum_piii_nb * 0.5);
             let sum_th_score = (sum_pi_th * 0.25) + (sum_pii_th * 1.0) + (sum_piii_th * 0.5);
             let sum_vd_score = (sum_pi_vd * 0.25) + (sum_pii_vd * 1.0) + (sum_piii_vd * 0.5);
@@ -761,7 +835,6 @@
             let pct_p2 = sum_score > 0 ? (((sum_pii_nb + sum_pii_th + sum_pii_vd) * 1.0) / sum_score * 100).toFixed(0) + '%' : '0%';
             let pct_p3 = sum_score > 0 ? (((sum_piii_nb + sum_piii_th + sum_piii_vd) * 0.5) / sum_score * 100).toFixed(0) + '%' : '0%';
 
-            // Encode matrix state in HTML as JSON to restore later
             let jsonState = JSON.stringify(matrixRows).replace(/</g, '\\u003c');
 
             let html = `
@@ -836,7 +909,6 @@
             </html>
             `;
 
-            // 3. Kích hoạt tải về file .xls
             const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -899,11 +971,10 @@
             }
 
             const outputArea = document.getElementById('promptOutput');
-            const roleString = getSelectedRole(); // Lấy nội dung vai trò đã chọn
+            const roleString = getSelectedRole(); 
             let promptTemplate = "";
 
             if (type === 'practice') {
-                // Logic: Phụ đạo
                 const level = document.getElementById('level')?.value || "Trung bình";
                 const numQuestions = document.getElementById('numQuestions')?.value || "10";
                 const notesInput = document.getElementById('notes')?.value?.trim() || "";
@@ -931,7 +1002,6 @@ Phần 1: Phụ đạo cơ bản (Dành cho Trung bình - Yếu) -> Ưu tiên s�
 Phần 2: Thử thách Khá - Giỏi (Nâng cao & Bẫy) -> Ưu tiên bẫy, vận dụng cao.`;
 
             } else {
-                // Logic: Ma trận đề thi (Chung cho Table, App, Anki)
                 const data = getMatrixDataString();
                 if(!data || data.length===0) { 
                     showToast('Vui lòng điền số câu hỏi (>0) vào ma trận!'); return; 
@@ -949,7 +1019,6 @@ Phần 2: Thử thách Khá - Giỏi (Nâng cao & Bẫy) -> Ưu tiên bẫy, v�
                     const sa = parseInt(row.sa || 0);
                     const rowTotal = tn + tf + sa;
                     
-                    // Nếu là form Anki thì bỏ ghi chú MC, TF, SA đi, chỉ gộp tổng số câu của bài đó
                     if (isAnki) {
                         matrixText += `\n- Bài [${row.lesson}] -> Yêu cầu tạo ${rowTotal} câu hỏi. (Mức độ yêu cầu: ${row.level})`;
                     } else {
@@ -963,7 +1032,6 @@ Phần 2: Thử thách Khá - Giỏi (Nâng cao & Bẫy) -> Ưu tiên bẫy, v�
                 });
 
                 if (type === 'matrix_table') {
-                    // Mẫu 1: Bảng 9 Cột
                     promptTemplate = `MẪU PROMPT TẠO ĐỀ THI BẢNG 9 CỘT
 Vai trò: ${roleString}
 (Lưu ý: Bạn đồng thời là Chuyên gia ra đề thi Toán cấp Quốc gia, thông thạo định dạng đề thi mới năm 2025 và mã hóa LaTeX).
@@ -993,7 +1061,6 @@ Yêu cầu về nội dung:
 
 Hãy tóm tắt các kiến thức cốt lõi và bắt đầu tạo dữ liệu bảng ngay bây giờ:`;
                 } else if (type === 'matrix_app') {
-                    // Mẫu 2: Dành cho App Trình chiếu
                     promptTemplate = `MẪU PROMPT TẠO ĐỀ THI - APP TRÌNH CHIẾU
 Vai trò: ${roleString}
 (Lưu ý: Bạn đồng thời là Chuyên gia ra đề thi Toán cấp Quốc gia, thông thạo định dạng đề thi mới năm 2025 và mã hóa LaTeX).
@@ -1026,7 +1093,7 @@ Lời giải:
 - Cuối đề thi, tạo một mục "Lời giải:" cho toàn bộ các câu hỏi ở cả 3 phần.
 - Lời giải phải cực kỳ NGẮN GỌN, đi thẳng vào bản chất. 
 - YÊU CẦU BẮT BUỘC: Phải CÓ XUỐNG DÒNG RÕ RÀNG (dùng các gạch đầu dòng) giữa các bước tính toán hoặc giữa các ý a, b, c, d để tối ưu hiển thị trên màn hình máy chiếu.
-- KIỂM TRA LẠI bằng python xem các bài toán vận dụng kết quả đúng không
+
 MẪU TRÌNH BÀY BẮT BUỘC (Hãy mô phỏng chính xác định dạng này, có đánh số Câu 1, Câu 2...):
 
 Phần I. Trắc nghiệm 4 phương án
@@ -1069,7 +1136,6 @@ Câu 3:
 
 Hãy tóm tắt các kiến thức cốt lõi và bắt đầu soạn đề thi ngay bây giờ:`;
                 } else if (type === 'matrix_anki') {
-                    // Mẫu 3: Dành cho Anki Flashcard
                     promptTemplate = `MẪU PROMPT TẠO THẺ ANKI FLASHCARD
 Vai trò: ${roleString}
 
@@ -1094,7 +1160,6 @@ Hãy trình bày kết quả dưới dạng bảng (Table) để tôi có thể 
 
 Hãy tóm tắt các kiến thức cốt lõi và bắt đầu tạo bảng flashcard ngay bây giờ:`;
                 } else if (type === 'matrix_anki_mc') {
-                    // Mẫu 4: Dành cho Anki Flashcard dạng Trắc Nghiệm Nhiều Lựa Chọn
                     promptTemplate = `MẪU PROMPT TẠO THẺ ANKI TRẮC NGHIỆM
 Vai trò: ${roleString}
 
@@ -1162,9 +1227,6 @@ Hãy tóm tắt các kiến thức cốt lõi và bắt đầu tạo bảng flas
             const outputArea = document.getElementById('promptOutput');
             if (!outputArea.value) { showToast('Không có nội dung để lưu!'); return; }
 
-            const checkboxes = document.querySelectorAll('.topic-checkbox:checked');
-            
-            // Đặt tiền tố dựa trên loại Prompt vừa sinh
             let prefix = "";
             if (lastGeneratedType === 'matrix_table') prefix = "[Bảng 9 Cột] ";
             else if (lastGeneratedType === 'matrix_app') prefix = "[App Trình Chiếu] ";
@@ -1173,10 +1235,10 @@ Hãy tóm tắt các kiến thức cốt lõi và bắt đầu tạo bảng flas
             else prefix = "[Phụ Đạo] ";
 
             let promptName = prefix + "Tuỳ chỉnh";
+            const selectedLessons = Array.from(globalSelectedLessons);
             
-            if (checkboxes.length > 0) {
-                const names = Array.from(checkboxes).map(cb => cb.value);
-                promptName = prefix + (names.length <= 2 ? names.join(', ') : `${names[0]}, ${names[1]} và ${names.length - 2} bài khác`);
+            if (selectedLessons.length > 0) {
+                promptName = prefix + (selectedLessons.length <= 2 ? selectedLessons.join(', ') : `${selectedLessons[0]}, ${selectedLessons[1]} và ${selectedLessons.length - 2} bài khác`);
             }
 
             const newPrompt = { id: Date.now().toString(), name: promptName, content: outputArea.value, date: new Date().toLocaleString('vi-VN') };
